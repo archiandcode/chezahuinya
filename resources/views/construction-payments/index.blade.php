@@ -1,0 +1,304 @@
+@extends('layouts.adminlte')
+
+@section('title', 'Стройка | ' . config('app.name'))
+@section('page-title', 'Стройка')
+
+@php
+    $money = fn ($value) => number_format((float) $value, 2, '.', ' ');
+    $filterKeys = ['date_from', 'date_to', 'supplier', 'contract', 'payment_source', 'amount_from', 'amount_to', 'search', 'per_page', 'page'];
+@endphp
+
+@section('content')
+    @if (session('status'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ session('status') }}
+            <button type="button" class="close" data-dismiss="alert" aria-label="Закрыть">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    @endif
+
+    @if ($errors->any())
+        <div class="alert alert-danger">
+            <strong>Проверьте данные.</strong>
+            <ul class="mb-0">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
+    <div class="row">
+        <div class="col-lg-3 col-md-6">
+            <div class="small-box bg-info">
+                <div class="inner">
+                    <h3>{{ $money($totalAmount) }}</h3>
+                    <p>Сумма по фильтру</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-coins"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="small-box bg-success">
+                <div class="inner">
+                    <h3>{{ $totalCount }}</h3>
+                    <p>Записей по фильтру</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-list"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="small-box bg-warning">
+                <div class="inner">
+                    <h3>{{ $suppliersCount }}</h3>
+                    <p>Поставщиков</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-truck"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="small-box bg-secondary">
+                <div class="inner">
+                    <h3>{{ $sourcesCount }}</h3>
+                    <p>Касс / р/с</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-university"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header js-filter-header" data-toggle-target="#constructionFilters">
+            <h3 class="card-title">Фильтры</h3>
+            <div class="card-tools">
+                <button
+                    type="button"
+                    class="btn btn-tool js-filter-toggle collapsed"
+                    data-toggle="collapse"
+                    data-target="#constructionFilters"
+                    aria-expanded="false"
+                    aria-controls="constructionFilters"
+                    title="Свернуть / развернуть"
+                >
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+            </div>
+        </div>
+        <form method="GET" action="{{ route('construction-payments.index') }}" id="constructionFilters" class="collapse">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label for="date_from">Дата от</label>
+                            <input type="date" id="date_from" name="date_from" value="{{ $filters['date_from'] ?? '' }}" class="form-control">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label for="date_to">Дата до</label>
+                            <input type="date" id="date_to" name="date_to" value="{{ $filters['date_to'] ?? '' }}" class="form-control">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label for="supplier">Поставщик</label>
+                            <select id="supplier" name="supplier" class="form-control">
+                                <option value="">Все</option>
+                                @foreach ($suppliers as $supplier)
+                                    <option value="{{ $supplier }}" @selected(($filters['supplier'] ?? '') === $supplier)>{{ $supplier }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label for="contract">Договор</label>
+                            <select id="contract" name="contract" class="form-control">
+                                <option value="">Все</option>
+                                @foreach ($contracts as $contract)
+                                    <option value="{{ $contract }}" @selected(($filters['contract'] ?? '') === $contract)>{{ $contract }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label for="payment_source">Касса / р/с</label>
+                            <select id="payment_source" name="payment_source" class="form-control">
+                                <option value="">Все</option>
+                                @foreach ($paymentSources as $paymentSource)
+                                    <option value="{{ $paymentSource }}" @selected(($filters['payment_source'] ?? '') === $paymentSource)>{{ $paymentSource }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label for="per_page">На странице</label>
+                            <select id="per_page" name="per_page" class="form-control">
+                                @foreach ([10, 25, 50, 100] as $size)
+                                    <option value="{{ $size }}" @selected((int) ($filters['per_page'] ?? 10) === $size)>{{ $size }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="row align-items-end">
+                    <div class="col-md-2">
+                        <div class="form-group mb-md-0">
+                            <label for="amount_from">Сумма от</label>
+                            <input type="number" step="0.01" min="0" id="amount_from" name="amount_from" value="{{ $filters['amount_from'] ?? '' }}" class="form-control">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group mb-md-0">
+                            <label for="amount_to">Сумма до</label>
+                            <input type="number" step="0.01" min="0" id="amount_to" name="amount_to" value="{{ $filters['amount_to'] ?? '' }}" class="form-control">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group mb-md-0">
+                            <label for="search">Поиск</label>
+                            <input type="search" id="search" name="search" value="{{ $filters['search'] ?? '' }}" class="form-control" placeholder="Поставщик, договор, назначение или касса/р/с">
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-md-right">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-filter mr-1"></i> Применить
+                        </button>
+                        <a href="{{ route('construction-payments.index') }}" class="btn btn-default">
+                            <i class="fas fa-times mr-1"></i> Сбросить
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Платежи стройки: {{ $totalCount }}</h3>
+            <div class="card-tools">
+                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#createConstructionPaymentModal">
+                    <i class="fas fa-plus mr-1"></i> Новая запись
+                </button>
+            </div>
+        </div>
+        <div class="card-body table-responsive p-0">
+            <table class="table table-bordered table-hover text-nowrap mb-0">
+                <thead>
+                    <tr>
+                        <th>Дата</th>
+                        <th>Поставщик</th>
+                        <th class="text-right">Сумма</th>
+                        <th>Договор</th>
+                        <th>Назначение</th>
+                        <th>С какой кассы и/или р/с</th>
+                        <th class="text-right">Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($payments as $payment)
+                        <tr>
+                            <td>{{ $payment->payment_date->format('d.m.Y') }}</td>
+                            <td>{{ $payment->supplier ?: '-' }}</td>
+                            <td class="text-right font-weight-bold">{{ $money($payment->amount) }}</td>
+                            <td>{{ $payment->contract ?: '-' }}</td>
+                            <td class="text-wrap" style="min-width: 280px;">{{ $payment->purpose ?: '-' }}</td>
+                            <td>{{ $payment->payment_source ?: '-' }}</td>
+                            <td class="text-right">
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-primary js-edit-construction-payment"
+                                    data-toggle="modal"
+                                    data-target="#editConstructionPaymentModal"
+                                    data-action="{{ route('construction-payments.update', $payment) }}"
+                                    data-date="{{ $payment->payment_date->format('Y-m-d') }}"
+                                    data-supplier="{{ $payment->supplier }}"
+                                    data-amount="{{ $payment->amount }}"
+                                    data-contract="{{ $payment->contract }}"
+                                    data-purpose="{{ $payment->purpose }}"
+                                    data-payment-source="{{ $payment->payment_source }}"
+                                >
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <form method="POST" action="{{ route('construction-payments.destroy', $payment) }}" class="d-inline" onsubmit="return confirm('Удалить запись стройки?')">
+                                    @csrf
+                                    @method('DELETE')
+                                    @foreach (request()->only($filterKeys) as $name => $value)
+                                        <input type="hidden" name="{{ $name }}" value="{{ $value }}">
+                                    @endforeach
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">Записей пока нет</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+        @if ($payments->hasPages())
+            <div class="card-footer">
+                {{ $payments->links() }}
+            </div>
+        @endif
+    </div>
+
+    @include('construction-payments.partials.form-modal', [
+        'modalId' => 'createConstructionPaymentModal',
+        'title' => 'Новая запись стройки',
+        'action' => route('construction-payments.store'),
+        'method' => 'POST',
+        'filterKeys' => $filterKeys,
+    ])
+
+    @include('construction-payments.partials.form-modal', [
+        'modalId' => 'editConstructionPaymentModal',
+        'title' => 'Редактировать запись стройки',
+        'action' => '#',
+        'method' => 'PUT',
+        'filterKeys' => $filterKeys,
+    ])
+@endsection
+
+@push('scripts')
+    <style>
+        .js-filter-toggle .fa-chevron-down {
+            transition: transform .2s ease;
+        }
+
+        .js-filter-toggle[aria-expanded="true"] .fa-chevron-down {
+            transform: rotate(180deg);
+        }
+    </style>
+    <script>
+        $(function () {
+            $('.js-edit-construction-payment').on('click', function () {
+                var button = $(this);
+                var modal = $('#editConstructionPaymentModal');
+
+                modal.find('form').attr('action', button.attr('data-action'));
+                modal.find('[name="payment_date"]').val(button.attr('data-date'));
+                modal.find('[name="supplier"]').val(button.attr('data-supplier'));
+                modal.find('[name="amount"]').val(button.attr('data-amount'));
+                modal.find('[name="contract"]').val(button.attr('data-contract'));
+                modal.find('[name="purpose"]').val(button.attr('data-purpose'));
+                modal.find('[name="payment_source"]').val(button.attr('data-payment-source'));
+            });
+        });
+    </script>
+@endpush

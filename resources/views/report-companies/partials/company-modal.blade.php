@@ -1,0 +1,42 @@
+<div class="modal fade" id="{{ $modalId }}" tabindex="-1" role="dialog" aria-labelledby="{{ $modalId }}Label" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form method="POST" action="{{ $action }}">
+                @csrf
+                @if ($method !== 'POST')
+                    @method($method)
+                @endif
+                @foreach (request()->only($filterKeys) as $name => $value)
+                    <input type="hidden" name="{{ $name }}" value="{{ $value }}">
+                @endforeach
+
+                <div class="modal-header">
+                    <h5 class="modal-title" id="{{ $modalId }}Label">{{ $title }}</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Закрыть">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="{{ $modalId }}_name">Название</label>
+                        <input type="text" id="{{ $modalId }}_name" name="name" value="{{ old('name') }}" class="form-control" maxlength="255" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ $modalId }}_short_name">Короткое имя</label>
+                        <input type="text" id="{{ $modalId }}_short_name" name="short_name" value="{{ old('short_name') }}" class="form-control" maxlength="255">
+                    </div>
+                    <div class="form-group mb-0">
+                        <label for="{{ $modalId }}_category">Категория</label>
+                        <input type="text" id="{{ $modalId }}_category" name="category" value="{{ old('category') }}" class="form-control" maxlength="255">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save mr-1"></i> Сохранить
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
