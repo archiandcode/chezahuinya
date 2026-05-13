@@ -12,6 +12,7 @@
         .js-filter-header {
             cursor: pointer;
         }
+
     </style>
 </head>
 <body class="hold-transition sidebar-mini layout-fixed">

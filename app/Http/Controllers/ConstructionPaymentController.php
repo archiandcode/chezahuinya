@@ -72,7 +72,7 @@ class ConstructionPaymentController extends Controller
 
         return redirect()
             ->route('construction-payments.index')
-            ->with('status', 'Запись стройки добавлена.');
+            ->with('toast_success', 'Запись стройки добавлена.');
     }
 
     public function update(Request $request, ConstructionPayment $constructionPayment): RedirectResponse
@@ -80,7 +80,7 @@ class ConstructionPaymentController extends Controller
         $constructionPayment->update($this->validatedData($request));
 
         return redirect()
-            ->route('construction-payments.index', $request->only($this->filterKeys()))
+            ->route('construction-payments.index', $this->filterParameters($request))
             ->with('status', 'Запись стройки обновлена.');
     }
 
@@ -89,7 +89,7 @@ class ConstructionPaymentController extends Controller
         $constructionPayment->delete();
 
         return redirect()
-            ->route('construction-payments.index', $request->only($this->filterKeys()))
+            ->route('construction-payments.index', $this->filterParameters($request))
             ->with('status', 'Запись стройки удалена.');
     }
 
@@ -157,5 +157,25 @@ class ConstructionPaymentController extends Controller
             'per_page',
             'page',
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function filterParameters(Request $request): array
+    {
+        $filters = [];
+
+        foreach ($this->filterKeys() as $key) {
+            $prefixedKey = 'filter_'.$key;
+
+            if ($request->has($prefixedKey)) {
+                $filters[$key] = $request->input($prefixedKey);
+            } elseif ($request->has($key)) {
+                $filters[$key] = $request->input($key);
+            }
+        }
+
+        return $filters;
     }
 }

@@ -71,25 +71,30 @@ class CashTransactionController extends Controller
 
         return redirect()
             ->route('cash-transactions.index')
-            ->with('status', 'Запись кассы добавлена.');
+            ->with('toast_success', 'Запись кассы добавлена.');
     }
 
     public function update(Request $request, CashTransaction $cashTransaction): RedirectResponse
     {
         $cashTransaction->update($this->validatedData($request));
 
+        $redirectFilters = $request->only([
+            'date_from',
+            'date_to',
+            'company',
+            'cash_flow',
+            'direction',
+            'search',
+            'per_page',
+            'page',
+        ]);
+
+        if ($request->filled('filter_has_supporting_document')) {
+            $redirectFilters['has_supporting_document'] = $request->input('filter_has_supporting_document');
+        }
+
         return redirect()
-            ->route('cash-transactions.index', $request->only([
-                'date_from',
-                'date_to',
-                'company',
-                'cash_flow',
-                'has_supporting_document',
-                'direction',
-                'search',
-                'per_page',
-                'page',
-            ]))
+            ->route('cash-transactions.index', $redirectFilters)
             ->with('status', 'Запись кассы обновлена.');
     }
 

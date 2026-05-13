@@ -8,6 +8,16 @@
 @endphp
 
 @section('content')
+    @if (session('toast_success'))
+        <div class="cash-success-toast" role="status" aria-live="polite">
+            <div class="cash-success-toast__content">
+                <i class="fas fa-check-circle"></i>
+                <span>{{ session('toast_success') }}</span>
+            </div>
+            <div class="cash-success-toast__timer"></div>
+        </div>
+    @endif
+
     @if (session('status'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
             {{ session('status') }}
@@ -81,10 +91,10 @@
             <div class="card-tools">
                 <button
                     type="button"
-                    class="btn btn-tool js-filter-toggle collapsed"
+                    class="btn btn-tool js-filter-toggle {{ request('filter_expanded') === '1' ? '' : 'collapsed' }}"
                     data-toggle="collapse"
                     data-target="#cashFilters"
-                    aria-expanded="false"
+                    aria-expanded="{{ request('filter_expanded') === '1' ? 'true' : 'false' }}"
                     aria-controls="cashFilters"
                     title="Свернуть / развернуть"
                 >
@@ -92,7 +102,8 @@
                 </button>
             </div>
         </div>
-        <form method="GET" action="{{ route('cash-transactions.index') }}" id="cashFilters" class="collapse">
+        <form method="GET" action="{{ route('cash-transactions.index') }}" id="cashFilters" class="collapse {{ request('filter_expanded') === '1' ? 'show' : '' }}">
+            <input type="hidden" name="filter_expanded" value="{{ request('filter_expanded') === '1' ? '1' : '0' }}">
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-2">
@@ -151,27 +162,17 @@
                     </div>
                 </div>
                 <div class="row align-items-end">
-                    <div class="col-md-6">
+                    <div class="col-md-8">
                         <div class="form-group mb-md-0">
                             <label for="search">Поиск</label>
                             <input type="search" id="search" name="search" value="{{ $filters['search'] ?? '' }}" class="form-control" placeholder="Компания или ДДС">
-                        </div>
-                    </div>
-                    <div class="col-md-2">
-                        <div class="form-group mb-md-0">
-                            <label for="per_page">На странице</label>
-                            <select id="per_page" name="per_page" class="form-control">
-                                @foreach ([10, 25, 50, 100] as $size)
-                                    <option value="{{ $size }}" @selected((int) ($filters['per_page'] ?? 10) === $size)>{{ $size }}</option>
-                                @endforeach
-                            </select>
                         </div>
                     </div>
                     <div class="col-md-4 text-md-right">
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-filter mr-1"></i> Применить
                         </button>
-                        <a href="{{ route('cash-transactions.index') }}" class="btn btn-default">
+                        <a href="{{ route('cash-transactions.index', request()->filled('per_page') ? ['per_page' => request('per_page')] : []) }}" class="btn btn-default">
                             <i class="fas fa-times mr-1"></i> Сбросить
                         </a>
                     </div>
@@ -184,15 +185,26 @@
         <div class="card-header">
             <h3 class="card-title">Операции кассы: {{ $totalCount }}</h3>
             <div class="card-tools">
-                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#createCashTransactionModal">
+                <button type="button" class="btn btn-primary btn-sm mr-2" data-toggle="modal" data-target="#createCashTransactionModal">
                     <i class="fas fa-plus mr-1"></i> Новая запись
                 </button>
+                <form method="GET" action="{{ route('cash-transactions.index') }}" class="d-inline-block">
+                    @foreach (request()->only(['date_from', 'date_to', 'company', 'cash_flow', 'has_supporting_document', 'direction', 'search', 'filter_expanded']) as $name => $value)
+                        <input type="hidden" name="{{ $name }}" value="{{ $value }}">
+                    @endforeach
+                    <select name="per_page" class="form-control form-control-sm d-inline-block w-auto js-per-page-select" aria-label="На странице">
+                        @foreach ([10, 25, 50, 100] as $size)
+                            <option value="{{ $size }}" @selected((int) ($filters['per_page'] ?? 10) === $size)>{{ $size }}</option>
+                        @endforeach
+                    </select>
+                </form>
             </div>
         </div>
         <div class="card-body table-responsive p-0">
-            <table class="table table-bordered table-hover text-nowrap mb-0">
-                <thead>
+            <table class="table table-hover table-bordered text-nowrap mb-0">
+                <thead class="thead-light">
                     <tr>
+                        <th style="width: 60px;">#</th>
                         <th>Дата</th>
                         <th class="text-right">Сумма поступления KZT</th>
                         <th class="text-right">Сумма расхода KZT</th>
@@ -206,6 +218,7 @@
                 <tbody>
                     @forelse ($transactions as $transaction)
                         <tr>
+                            <td>{{ $transactions->firstItem() + $loop->index }}</td>
                             <td>{{ $transaction->transaction_date->format('d.m.Y') }}</td>
                             <td class="text-right text-success">{{ $transaction->income_amount > 0 ? $money($transaction->income_amount) : '' }}</td>
                             <td class="text-right text-danger">{{ $transaction->expense_amount > 0 ? $money($transaction->expense_amount) : '' }}</td>
@@ -251,7 +264,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center text-muted py-4">Записей пока нет</td>
+                            <td colspan="9" class="text-center text-muted py-4">Записей пока нет</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -270,6 +283,7 @@
         'action' => route('cash-transactions.store'),
         'method' => 'POST',
         'transaction' => null,
+        'defaultTransactionDate' => now()->toDateString(),
     ])
 
     @include('cash-transactions.partials.form-modal', [
@@ -291,9 +305,75 @@
         .js-filter-toggle[aria-expanded="true"] .fa-chevron-down {
             transform: rotate(180deg);
         }
+
+        .cash-transaction-amount-input {
+            -moz-appearance: textfield;
+        }
+
+        .cash-transaction-amount-input::-webkit-outer-spin-button,
+        .cash-transaction-amount-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .cash-success-toast {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1080;
+            width: min(360px, calc(100vw - 2rem));
+            overflow: hidden;
+            color: #155724;
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: .25rem;
+            box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .15);
+        }
+
+        .cash-success-toast__content {
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            padding: .75rem 1rem;
+        }
+
+        .cash-success-toast__timer {
+            height: 3px;
+            background: #28a745;
+            animation: cashSuccessToastTimer 4s linear forwards;
+        }
+
+        .cash-success-toast.is-hiding {
+            opacity: 0;
+            transform: translateY(-8px);
+            transition: opacity .2s ease, transform .2s ease;
+        }
+
+        @keyframes cashSuccessToastTimer {
+            from {
+                width: 100%;
+            }
+
+            to {
+                width: 0;
+            }
+        }
     </style>
     <script>
         $(function () {
+            $('#cashFilters').on('submit', function () {
+                $(this).find('[name="filter_expanded"]').val($(this).hasClass('show') ? '1' : '0');
+            });
+
+            if (window.history.replaceState) {
+                var url = new URL(window.location.href);
+
+                if (url.searchParams.has('filter_expanded')) {
+                    url.searchParams.delete('filter_expanded');
+                    window.history.replaceState({}, document.title, url.toString());
+                }
+            }
+
             $('.js-edit-transaction').on('click', function () {
                 var button = $(this);
                 var modal = $('#editCashTransactionModal');
@@ -305,6 +385,33 @@
                 modal.find('[name="company"]').val(button.attr('data-company'));
                 modal.find('[name="cash_flow"]').val(button.attr('data-cash-flow'));
                 modal.find('[name="has_supporting_document"]').val(button.attr('data-has-document'));
+            });
+
+            $('#createCashTransactionModal').on('show.bs.modal', function () {
+                var modal = $(this);
+
+                modal.find('[name="transaction_date"]').val('{{ now()->toDateString() }}');
+                modal.find('[name="income_amount"]').val('');
+                modal.find('[name="expense_amount"]').val('');
+                modal.find('[name="company"]').val('');
+                modal.find('[name="cash_flow"]').val('');
+                modal.find('[name="has_supporting_document"]').val('');
+            });
+
+            var toast = $('.cash-success-toast');
+
+            if (toast.length) {
+                setTimeout(function () {
+                    toast.addClass('is-hiding');
+
+                    setTimeout(function () {
+                        toast.remove();
+                    }, 200);
+                }, 4000);
+            }
+
+            $('.js-per-page-select').on('change', function () {
+                $(this).closest('form').trigger('submit');
             });
         });
     </script>

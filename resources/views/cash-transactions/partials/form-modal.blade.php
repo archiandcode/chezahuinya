@@ -6,9 +6,12 @@
                 @if ($method !== 'POST')
                     @method($method)
                 @endif
-                @foreach (request()->only(['date_from', 'date_to', 'company', 'cash_flow', 'has_supporting_document', 'direction', 'search', 'per_page', 'page']) as $name => $value)
+                @foreach (request()->only(['date_from', 'date_to', 'company', 'cash_flow', 'direction', 'search', 'per_page', 'page']) as $name => $value)
                     <input type="hidden" name="{{ $name }}" value="{{ $value }}">
                 @endforeach
+                @if (request()->filled('has_supporting_document'))
+                    <input type="hidden" name="filter_has_supporting_document" value="{{ request('has_supporting_document') }}">
+                @endif
 
                 <div class="modal-header">
                     <h5 class="modal-title" id="{{ $modalId }}Label">{{ $title }}</h5>
@@ -21,19 +24,19 @@
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="{{ $modalId }}_transaction_date">Дата</label>
-                                <input type="date" id="{{ $modalId }}_transaction_date" name="transaction_date" value="{{ old('transaction_date') }}" class="form-control" required>
+                                <input type="date" id="{{ $modalId }}_transaction_date" name="transaction_date" value="{{ old('transaction_date', $defaultTransactionDate ?? '') }}" class="form-control" required>
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="{{ $modalId }}_income_amount">Сумма поступления KZT</label>
-                                <input type="number" step="0.01" min="0" id="{{ $modalId }}_income_amount" name="income_amount" value="{{ old('income_amount') }}" class="form-control">
+                                <input type="number" step="0.01" min="0" id="{{ $modalId }}_income_amount" name="income_amount" value="{{ old('income_amount') }}" class="form-control cash-transaction-amount-input">
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="{{ $modalId }}_expense_amount">Сумма расхода KZT</label>
-                                <input type="number" step="0.01" min="0" id="{{ $modalId }}_expense_amount" name="expense_amount" value="{{ old('expense_amount') }}" class="form-control">
+                                <input type="number" step="0.01" min="0" id="{{ $modalId }}_expense_amount" name="expense_amount" value="{{ old('expense_amount') }}" class="form-control cash-transaction-amount-input">
                             </div>
                         </div>
                     </div>

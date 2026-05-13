@@ -54,7 +54,7 @@ class ReportCompanyController extends Controller
 
         return redirect()
             ->route('report-companies.index')
-            ->with('status', 'Компания добавлена.');
+            ->with('toast_success', 'Компания добавлена.');
     }
 
     public function update(Request $request, ReportCompany $reportCompany): RedirectResponse
@@ -62,7 +62,7 @@ class ReportCompanyController extends Controller
         $reportCompany->update($this->validatedCompanyData($request, $reportCompany));
 
         return redirect()
-            ->route('report-companies.index', $request->only($this->filterKeys()))
+            ->route('report-companies.index', $this->filterParameters($request))
             ->with('status', 'Компания обновлена.');
     }
 
@@ -72,12 +72,12 @@ class ReportCompanyController extends Controller
             $reportCompany->delete();
         } catch (QueryException) {
             return redirect()
-                ->route('report-companies.index', $request->only($this->filterKeys()))
+                ->route('report-companies.index', $this->filterParameters($request))
                 ->withErrors(['company' => 'Нельзя удалить компанию, которая уже используется в ежедневных отчетах.']);
         }
 
         return redirect()
-            ->route('report-companies.index', $request->only($this->filterKeys()))
+            ->route('report-companies.index', $this->filterParameters($request))
             ->with('status', 'Компания удалена.');
     }
 
@@ -86,8 +86,8 @@ class ReportCompanyController extends Controller
         $reportCompany->accounts()->create($this->validatedAccountData($request, $reportCompany));
 
         return redirect()
-            ->route('report-companies.index', $request->only($this->filterKeys()))
-            ->with('status', 'Счет компании добавлен.');
+            ->route('report-companies.index', $this->filterParameters($request))
+            ->with('toast_success', 'Счет компании добавлен.');
     }
 
     public function updateAccount(Request $request, ReportCompanyAccount $account): RedirectResponse
@@ -95,7 +95,7 @@ class ReportCompanyController extends Controller
         $account->update($this->validatedAccountData($request, $account->company, $account));
 
         return redirect()
-            ->route('report-companies.index', $request->only($this->filterKeys()))
+            ->route('report-companies.index', $this->filterParameters($request))
             ->with('status', 'Счет компании обновлен.');
     }
 
@@ -105,12 +105,12 @@ class ReportCompanyController extends Controller
             $account->delete();
         } catch (QueryException) {
             return redirect()
-                ->route('report-companies.index', $request->only($this->filterKeys()))
+                ->route('report-companies.index', $this->filterParameters($request))
                 ->withErrors(['account' => 'Нельзя удалить счет, который уже используется в ежедневных отчетах.']);
         }
 
         return redirect()
-            ->route('report-companies.index', $request->only($this->filterKeys()))
+            ->route('report-companies.index', $this->filterParameters($request))
             ->with('status', 'Счет компании удален.');
     }
 
@@ -184,5 +184,25 @@ class ReportCompanyController extends Controller
     private function filterKeys(): array
     {
         return ['category', 'search', 'per_page', 'page'];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function filterParameters(Request $request): array
+    {
+        $filters = [];
+
+        foreach ($this->filterKeys() as $key) {
+            $prefixedKey = 'filter_'.$key;
+
+            if ($request->has($prefixedKey)) {
+                $filters[$key] = $request->input($prefixedKey);
+            } elseif ($request->has($key)) {
+                $filters[$key] = $request->input($key);
+            }
+        }
+
+        return $filters;
     }
 }

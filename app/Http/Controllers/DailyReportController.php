@@ -78,7 +78,7 @@ class DailyReportController extends Controller
 
         return redirect()
             ->route('daily-reports.index')
-            ->with('status', 'Запись ежедневного отчета добавлена.');
+            ->with('toast_success', 'Запись ежедневного отчета добавлена.');
     }
 
     public function update(Request $request, DailyReportEntry $dailyReport): RedirectResponse
@@ -86,7 +86,7 @@ class DailyReportController extends Controller
         $dailyReport->update($this->validatedData($request));
 
         return redirect()
-            ->route('daily-reports.index', $request->only($this->filterKeys()))
+            ->route('daily-reports.index', $this->filterParameters($request))
             ->with('status', 'Запись ежедневного отчета обновлена.');
     }
 
@@ -95,7 +95,7 @@ class DailyReportController extends Controller
         $dailyReport->delete();
 
         return redirect()
-            ->route('daily-reports.index', $request->only($this->filterKeys()))
+            ->route('daily-reports.index', $this->filterParameters($request))
             ->with('status', 'Запись ежедневного отчета удалена.');
     }
 
@@ -187,5 +187,25 @@ class DailyReportController extends Controller
             'per_page',
             'page',
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function filterParameters(Request $request): array
+    {
+        $filters = [];
+
+        foreach ($this->filterKeys() as $key) {
+            $prefixedKey = 'filter_'.$key;
+
+            if ($request->has($prefixedKey)) {
+                $filters[$key] = $request->input($prefixedKey);
+            } elseif ($request->has($key)) {
+                $filters[$key] = $request->input($key);
+            }
+        }
+
+        return $filters;
     }
 }

@@ -9,6 +9,16 @@
 @endphp
 
 @section('content')
+    @if (session('toast_success'))
+        <div class="construction-success-toast" role="status" aria-live="polite">
+            <div class="construction-success-toast__content">
+                <i class="fas fa-check-circle"></i>
+                <span>{{ session('toast_success') }}</span>
+            </div>
+            <div class="construction-success-toast__timer"></div>
+        </div>
+    @endif
+
     @if (session('status'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
             {{ session('status') }}
@@ -82,10 +92,10 @@
             <div class="card-tools">
                 <button
                     type="button"
-                    class="btn btn-tool js-filter-toggle collapsed"
+                    class="btn btn-tool js-filter-toggle {{ request('filter_expanded') === '1' ? '' : 'collapsed' }}"
                     data-toggle="collapse"
                     data-target="#constructionFilters"
-                    aria-expanded="false"
+                    aria-expanded="{{ request('filter_expanded') === '1' ? 'true' : 'false' }}"
                     aria-controls="constructionFilters"
                     title="Свернуть / развернуть"
                 >
@@ -93,7 +103,8 @@
                 </button>
             </div>
         </div>
-        <form method="GET" action="{{ route('construction-payments.index') }}" id="constructionFilters" class="collapse">
+        <form method="GET" action="{{ route('construction-payments.index') }}" id="constructionFilters" class="collapse {{ request('filter_expanded') === '1' ? 'show' : '' }}">
+            <input type="hidden" name="filter_expanded" value="{{ request('filter_expanded') === '1' ? '1' : '0' }}">
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-2">
@@ -141,28 +152,18 @@
                             </select>
                         </div>
                     </div>
-                    <div class="col-md-2">
-                        <div class="form-group">
-                            <label for="per_page">На странице</label>
-                            <select id="per_page" name="per_page" class="form-control">
-                                @foreach ([10, 25, 50, 100] as $size)
-                                    <option value="{{ $size }}" @selected((int) ($filters['per_page'] ?? 10) === $size)>{{ $size }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
                 </div>
                 <div class="row align-items-end">
                     <div class="col-md-2">
                         <div class="form-group mb-md-0">
                             <label for="amount_from">Сумма от</label>
-                            <input type="number" step="0.01" min="0" id="amount_from" name="amount_from" value="{{ $filters['amount_from'] ?? '' }}" class="form-control">
+                            <input type="number" step="0.01" min="0" id="amount_from" name="amount_from" value="{{ $filters['amount_from'] ?? '' }}" class="form-control construction-payment-amount-input">
                         </div>
                     </div>
                     <div class="col-md-2">
                         <div class="form-group mb-md-0">
                             <label for="amount_to">Сумма до</label>
-                            <input type="number" step="0.01" min="0" id="amount_to" name="amount_to" value="{{ $filters['amount_to'] ?? '' }}" class="form-control">
+                            <input type="number" step="0.01" min="0" id="amount_to" name="amount_to" value="{{ $filters['amount_to'] ?? '' }}" class="form-control construction-payment-amount-input">
                         </div>
                     </div>
                     <div class="col-md-4">
@@ -175,7 +176,7 @@
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-filter mr-1"></i> Применить
                         </button>
-                        <a href="{{ route('construction-payments.index') }}" class="btn btn-default">
+                        <a href="{{ route('construction-payments.index', request()->filled('per_page') ? ['per_page' => request('per_page')] : []) }}" class="btn btn-default">
                             <i class="fas fa-times mr-1"></i> Сбросить
                         </a>
                     </div>
@@ -188,15 +189,26 @@
         <div class="card-header">
             <h3 class="card-title">Платежи стройки: {{ $totalCount }}</h3>
             <div class="card-tools">
-                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#createConstructionPaymentModal">
+                <button type="button" class="btn btn-primary btn-sm mr-2" data-toggle="modal" data-target="#createConstructionPaymentModal">
                     <i class="fas fa-plus mr-1"></i> Новая запись
                 </button>
+                <form method="GET" action="{{ route('construction-payments.index') }}" class="d-inline-block">
+                    @foreach (request()->only(['date_from', 'date_to', 'supplier', 'contract', 'payment_source', 'amount_from', 'amount_to', 'search', 'filter_expanded']) as $name => $value)
+                        <input type="hidden" name="{{ $name }}" value="{{ $value }}">
+                    @endforeach
+                    <select name="per_page" class="form-control form-control-sm d-inline-block w-auto js-per-page-select" aria-label="На странице">
+                        @foreach ([10, 25, 50, 100] as $size)
+                            <option value="{{ $size }}" @selected((int) ($filters['per_page'] ?? 10) === $size)>{{ $size }}</option>
+                        @endforeach
+                    </select>
+                </form>
             </div>
         </div>
         <div class="card-body table-responsive p-0">
-            <table class="table table-bordered table-hover text-nowrap mb-0">
-                <thead>
+            <table class="table table-hover table-bordered text-nowrap mb-0">
+                <thead class="thead-light">
                     <tr>
+                        <th style="width: 60px;">#</th>
                         <th>Дата</th>
                         <th>Поставщик</th>
                         <th class="text-right">Сумма</th>
@@ -209,6 +221,7 @@
                 <tbody>
                     @forelse ($payments as $payment)
                         <tr>
+                            <td>{{ $payments->firstItem() + $loop->index }}</td>
                             <td>{{ $payment->payment_date->format('d.m.Y') }}</td>
                             <td>{{ $payment->supplier ?: '-' }}</td>
                             <td class="text-right font-weight-bold">{{ $money($payment->amount) }}</td>
@@ -245,7 +258,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="text-center text-muted py-4">Записей пока нет</td>
+                            <td colspan="8" class="text-center text-muted py-4">Записей пока нет</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -264,6 +277,7 @@
         'action' => route('construction-payments.store'),
         'method' => 'POST',
         'filterKeys' => $filterKeys,
+        'defaultPaymentDate' => now()->toDateString(),
     ])
 
     @include('construction-payments.partials.form-modal', [
@@ -284,9 +298,75 @@
         .js-filter-toggle[aria-expanded="true"] .fa-chevron-down {
             transform: rotate(180deg);
         }
+
+        .construction-payment-amount-input {
+            -moz-appearance: textfield;
+        }
+
+        .construction-payment-amount-input::-webkit-outer-spin-button,
+        .construction-payment-amount-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .construction-success-toast {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1080;
+            width: min(360px, calc(100vw - 2rem));
+            overflow: hidden;
+            color: #155724;
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: .25rem;
+            box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .15);
+        }
+
+        .construction-success-toast__content {
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            padding: .75rem 1rem;
+        }
+
+        .construction-success-toast__timer {
+            height: 3px;
+            background: #28a745;
+            animation: constructionSuccessToastTimer 4s linear forwards;
+        }
+
+        .construction-success-toast.is-hiding {
+            opacity: 0;
+            transform: translateY(-8px);
+            transition: opacity .2s ease, transform .2s ease;
+        }
+
+        @keyframes constructionSuccessToastTimer {
+            from {
+                width: 100%;
+            }
+
+            to {
+                width: 0;
+            }
+        }
     </style>
     <script>
         $(function () {
+            $('#constructionFilters').on('submit', function () {
+                $(this).find('[name="filter_expanded"]').val($(this).hasClass('show') ? '1' : '0');
+            });
+
+            if (window.history.replaceState) {
+                var url = new URL(window.location.href);
+
+                if (url.searchParams.has('filter_expanded')) {
+                    url.searchParams.delete('filter_expanded');
+                    window.history.replaceState({}, document.title, url.toString());
+                }
+            }
+
             $('.js-edit-construction-payment').on('click', function () {
                 var button = $(this);
                 var modal = $('#editConstructionPaymentModal');
@@ -298,6 +378,33 @@
                 modal.find('[name="contract"]').val(button.attr('data-contract'));
                 modal.find('[name="purpose"]').val(button.attr('data-purpose'));
                 modal.find('[name="payment_source"]').val(button.attr('data-payment-source'));
+            });
+
+            $('#createConstructionPaymentModal').on('show.bs.modal', function () {
+                var modal = $(this);
+
+                modal.find('[name="payment_date"]').val('{{ now()->toDateString() }}');
+                modal.find('[name="supplier"]').val('');
+                modal.find('[name="amount"]').val('');
+                modal.find('[name="contract"]').val('');
+                modal.find('[name="purpose"]').val('');
+                modal.find('[name="payment_source"]').val('');
+            });
+
+            var toast = $('.construction-success-toast');
+
+            if (toast.length) {
+                setTimeout(function () {
+                    toast.addClass('is-hiding');
+
+                    setTimeout(function () {
+                        toast.remove();
+                    }, 200);
+                }, 4000);
+            }
+
+            $('.js-per-page-select').on('change', function () {
+                $(this).closest('form').trigger('submit');
             });
         });
     </script>

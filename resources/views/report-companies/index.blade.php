@@ -8,6 +8,16 @@
 @endphp
 
 @section('content')
+    @if (session('toast_success'))
+        <div class="company-success-toast" role="status" aria-live="polite">
+            <div class="company-success-toast__content">
+                <i class="fas fa-check-circle"></i>
+                <span>{{ session('toast_success') }}</span>
+            </div>
+            <div class="company-success-toast__timer"></div>
+        </div>
+    @endif
+
     @if (session('status'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
             {{ session('status') }}
@@ -64,10 +74,10 @@
             <div class="card-tools">
                 <button
                     type="button"
-                    class="btn btn-tool js-filter-toggle collapsed"
+                    class="btn btn-tool js-filter-toggle {{ request('filter_expanded') === '1' ? '' : 'collapsed' }}"
                     data-toggle="collapse"
                     data-target="#companyFilters"
-                    aria-expanded="false"
+                    aria-expanded="{{ request('filter_expanded') === '1' ? 'true' : 'false' }}"
                     aria-controls="companyFilters"
                     title="Свернуть / развернуть"
                 >
@@ -75,10 +85,11 @@
                 </button>
             </div>
         </div>
-        <form method="GET" action="{{ route('report-companies.index') }}" id="companyFilters" class="collapse">
+        <form method="GET" action="{{ route('report-companies.index') }}" id="companyFilters" class="collapse {{ request('filter_expanded') === '1' ? 'show' : '' }}">
+            <input type="hidden" name="filter_expanded" value="{{ request('filter_expanded') === '1' ? '1' : '0' }}">
             <div class="card-body">
                 <div class="row align-items-end">
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <div class="form-group mb-md-0">
                             <label for="category">Категория</label>
                             <select id="category" name="category" class="form-control">
@@ -89,27 +100,17 @@
                             </select>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-5">
                         <div class="form-group mb-md-0">
                             <label for="search">Поиск</label>
                             <input type="search" id="search" name="search" value="{{ $filters['search'] ?? '' }}" class="form-control" placeholder="Название, категория или счет">
-                        </div>
-                    </div>
-                    <div class="col-md-2">
-                        <div class="form-group mb-md-0">
-                            <label for="per_page">На странице</label>
-                            <select id="per_page" name="per_page" class="form-control">
-                                @foreach ([10, 25, 50, 100] as $size)
-                                    <option value="{{ $size }}" @selected((int) ($filters['per_page'] ?? 10) === $size)>{{ $size }}</option>
-                                @endforeach
-                            </select>
                         </div>
                     </div>
                     <div class="col-md-3 text-md-right">
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-filter mr-1"></i> Применить
                         </button>
-                        <a href="{{ route('report-companies.index') }}" class="btn btn-default">
+                        <a href="{{ route('report-companies.index', request()->filled('per_page') ? ['per_page' => request('per_page')] : []) }}" class="btn btn-default">
                             <i class="fas fa-times mr-1"></i> Сбросить
                         </a>
                     </div>
@@ -122,15 +123,26 @@
         <div class="card-header">
             <h3 class="card-title">Компании</h3>
             <div class="card-tools">
-                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#createCompanyModal">
+                <button type="button" class="btn btn-primary btn-sm mr-2" data-toggle="modal" data-target="#createCompanyModal">
                     <i class="fas fa-plus mr-1"></i> Новая компания
                 </button>
+                <form method="GET" action="{{ route('report-companies.index') }}" class="d-inline-block">
+                    @foreach (request()->only(['category', 'search', 'filter_expanded']) as $name => $value)
+                        <input type="hidden" name="{{ $name }}" value="{{ $value }}">
+                    @endforeach
+                    <select name="per_page" class="form-control form-control-sm d-inline-block w-auto js-per-page-select" aria-label="На странице">
+                        @foreach ([10, 25, 50, 100] as $size)
+                            <option value="{{ $size }}" @selected((int) ($filters['per_page'] ?? 10) === $size)>{{ $size }}</option>
+                        @endforeach
+                    </select>
+                </form>
             </div>
         </div>
         <div class="card-body table-responsive p-0">
-            <table class="table table-bordered table-hover mb-0">
-                <thead>
+            <table class="table table-hover table-bordered mb-0">
+                <thead class="thead-light">
                     <tr>
+                        <th style="width: 60px;">#</th>
                         <th>Компания</th>
                         <th>Короткое имя</th>
                         <th>Категория</th>
@@ -141,6 +153,7 @@
                 <tbody>
                     @forelse ($companies as $company)
                         <tr>
+                            <td>{{ $companies->firstItem() + $loop->index }}</td>
                             <td class="font-weight-bold">{{ $company->name }}</td>
                             <td>{{ $company->short_name ?: '-' }}</td>
                             <td>{{ $company->category ?: '-' }}</td>
@@ -218,7 +231,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="text-center text-muted py-4">Компаний пока нет</td>
+                            <td colspan="6" class="text-center text-muted py-4">Компаний пока нет</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -273,9 +286,65 @@
         .js-filter-toggle[aria-expanded="true"] .fa-chevron-down {
             transform: rotate(180deg);
         }
+
+        .company-success-toast {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1080;
+            width: min(360px, calc(100vw - 2rem));
+            overflow: hidden;
+            color: #155724;
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: .25rem;
+            box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .15);
+        }
+
+        .company-success-toast__content {
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            padding: .75rem 1rem;
+        }
+
+        .company-success-toast__timer {
+            height: 3px;
+            background: #28a745;
+            animation: companySuccessToastTimer 4s linear forwards;
+        }
+
+        .company-success-toast.is-hiding {
+            opacity: 0;
+            transform: translateY(-8px);
+            transition: opacity .2s ease, transform .2s ease;
+        }
+
+        @keyframes companySuccessToastTimer {
+            from {
+                width: 100%;
+            }
+
+            to {
+                width: 0;
+            }
+        }
     </style>
     <script>
         $(function () {
+            $('#companyFilters').on('submit', function () {
+                $(this).find('[name="filter_expanded"]').val($(this).hasClass('show') ? '1' : '0');
+            });
+
+            if (window.history.replaceState) {
+                var url = new URL(window.location.href);
+
+                if (url.searchParams.has('filter_expanded')) {
+                    url.searchParams.delete('filter_expanded');
+                    window.history.replaceState({}, document.title, url.toString());
+                }
+            }
+
             $('.js-edit-company').on('click', function () {
                 var button = $(this);
                 var modal = $('#editCompanyModal');
@@ -284,6 +353,14 @@
                 modal.find('[name="name"]').val(button.attr('data-name'));
                 modal.find('[name="short_name"]').val(button.attr('data-short-name'));
                 modal.find('[name="category"]').val(button.attr('data-category'));
+            });
+
+            $('#createCompanyModal').on('show.bs.modal', function () {
+                var modal = $(this);
+
+                modal.find('[name="name"]').val('');
+                modal.find('[name="short_name"]').val('');
+                modal.find('[name="category"]').val('');
             });
 
             $('.js-create-account').on('click', function () {
@@ -303,6 +380,22 @@
                 modal.find('form').attr('action', button.attr('data-action'));
                 modal.find('[name="account_number"]').val(button.attr('data-account-number'));
                 modal.find('[name="bank"]').val(button.attr('data-bank'));
+            });
+
+            var toast = $('.company-success-toast');
+
+            if (toast.length) {
+                setTimeout(function () {
+                    toast.addClass('is-hiding');
+
+                    setTimeout(function () {
+                        toast.remove();
+                    }, 200);
+                }, 4000);
+            }
+
+            $('.js-per-page-select').on('change', function () {
+                $(this).closest('form').trigger('submit');
             });
         });
     </script>

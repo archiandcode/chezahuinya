@@ -1,21 +1,21 @@
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: www_postgres
-    restart: unless-stopped
-    ports:
-      - "${DB_PORT:-5432}:5432"
-    environment:
-      POSTGRES_DB: "${DB_DATABASE:-laravel}"
-      POSTGRES_USER: "${DB_USERNAME:-laravel}"
-      POSTGRES_PASSWORD: "${DB_PASSWORD:-password}"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-laravel} -d ${DB_DATABASE:-laravel}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    postgres:
+        image: postgres:16-alpine
+        container_name: www_postgres
+        restart: unless-stopped
+        ports:
+            - "5433:5432"
+        environment:
+            POSTGRES_DB: laravel
+            POSTGRES_USER: laravel
+            POSTGRES_PASSWORD: password
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U laravel -d laravel"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
 
 volumes:
-  postgres_data:
+    postgres_data:

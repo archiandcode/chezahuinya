@@ -7,7 +7,7 @@
                     @method($method)
                 @endif
                 @foreach (request()->only($filterKeys) as $name => $value)
-                    <input type="hidden" name="{{ $name }}" value="{{ $value }}">
+                    <input type="hidden" name="filter_{{ $name }}" value="{{ $value }}">
                 @endforeach
 
                 <div class="modal-header">

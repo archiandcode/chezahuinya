@@ -7,7 +7,7 @@
                     @method($method)
                 @endif
                 @foreach (request()->only($filterKeys) as $name => $value)
-                    <input type="hidden" name="{{ $name }}" value="{{ $value }}">
+                    <input type="hidden" name="filter_{{ $name }}" value="{{ $value }}">
                 @endforeach
 
                 <div class="modal-header">
@@ -21,7 +21,7 @@
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="{{ $modalId }}_report_date">Дата</label>
-                                <input type="date" id="{{ $modalId }}_report_date" name="report_date" value="{{ old('report_date') }}" class="form-control" required>
+                                <input type="date" id="{{ $modalId }}_report_date" name="report_date" value="{{ old('report_date', $defaultReportDate ?? '') }}" class="form-control" required>
                             </div>
                         </div>
                         <div class="col-md-4">
@@ -76,7 +76,7 @@
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="{{ $modalId }}_amount">Сумма</label>
-                                <input type="number" step="0.01" min="0.01" id="{{ $modalId }}_amount" name="amount" value="{{ old('amount') }}" class="form-control" required>
+                                <input type="number" step="0.01" min="0.01" id="{{ $modalId }}_amount" name="amount" value="{{ old('amount') }}" class="form-control daily-report-amount-input" required>
                             </div>
                         </div>
                         <div class="col-md-4">
