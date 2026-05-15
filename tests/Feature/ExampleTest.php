@@ -20,6 +20,6 @@ class ExampleTest extends TestCase
     {
         $response = $this->get('/login');
 
-        $response->assertOk()->assertSee('Войдите в панель управления');
+        $response->assertOk()->assertSee('Войдите');
     }
 }

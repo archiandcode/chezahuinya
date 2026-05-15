@@ -17,7 +17,6 @@ class ReportCompanyController extends Controller
     {
         $filters = $request->validate([
             'category' => ['nullable', 'string', 'max:255'],
-            'search' => ['nullable', 'string', 'max:255'],
             'per_page' => ['nullable', 'integer', 'in:10,25,50,100'],
         ]);
 
@@ -121,16 +120,7 @@ class ReportCompanyController extends Controller
     private function applyFilters(Builder $query, array $filters): void
     {
         $query
-            ->when($filters['category'] ?? null, fn (Builder $query, string $category) => $query->where('category', $category))
-            ->when($filters['search'] ?? null, function (Builder $query, string $search): void {
-                $query->where(function (Builder $query) use ($search): void {
-                    $query
-                        ->where('name', 'like', "%{$search}%")
-                        ->orWhere('short_name', 'like', "%{$search}%")
-                        ->orWhere('category', 'like', "%{$search}%")
-                        ->orWhereHas('accounts', fn (Builder $query) => $query->where('account_number', 'like', "%{$search}%"));
-                });
-            });
+            ->when($filters['category'] ?? null, fn (Builder $query, string $category) => $query->where('category', $category));
     }
 
     /**
@@ -183,7 +173,7 @@ class ReportCompanyController extends Controller
      */
     private function filterKeys(): array
     {
-        return ['category', 'search', 'per_page', 'page'];
+        return ['category', 'per_page', 'page'];
     }
 
     /**

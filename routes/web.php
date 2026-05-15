@@ -1,10 +1,15 @@
 <?php
 
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\BuffetReportController;
+use App\Http\Controllers\CashBalanceController;
 use App\Http\Controllers\CashTransactionController;
 use App\Http\Controllers\ConstructionPaymentController;
 use App\Http\Controllers\DailyReportController;
+use App\Http\Controllers\DebtCreditReportController;
+use App\Http\Controllers\RapReportController;
 use App\Http\Controllers\ReportCompanyController;
+use App\Http\Controllers\TradingStockBalanceController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -28,6 +33,16 @@ Route::middleware('auth')->group(function () {
     Route::resource('construction-payments', ConstructionPaymentController::class)
         ->only(['index', 'store', 'update', 'destroy']);
     Route::resource('daily-reports', DailyReportController::class)
+        ->only(['index', 'store', 'update', 'destroy']);
+    Route::resource('cash-balances', CashBalanceController::class)
+        ->only(['index', 'store', 'update', 'destroy']);
+    Route::resource('trading-stock-balances', TradingStockBalanceController::class)
+        ->only(['index', 'store', 'update', 'destroy']);
+    Route::resource('rap-reports', RapReportController::class)
+        ->only(['index', 'store', 'update', 'destroy']);
+    Route::resource('debt-credit-reports', DebtCreditReportController::class)
+        ->only(['index', 'store', 'update', 'destroy']);
+    Route::resource('buffet-reports', BuffetReportController::class)
         ->only(['index', 'store', 'update', 'destroy']);
     Route::resource('report-companies', ReportCompanyController::class)
         ->only(['index', 'store', 'update', 'destroy']);

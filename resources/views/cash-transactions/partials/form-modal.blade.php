@@ -6,7 +6,7 @@
                 @if ($method !== 'POST')
                     @method($method)
                 @endif
-                @foreach (request()->only(['date_from', 'date_to', 'company', 'cash_flow', 'direction', 'search', 'per_page', 'page']) as $name => $value)
+                @foreach (request()->only(['date_from', 'date_to', 'company', 'cash_flow', 'direction', 'per_page', 'page']) as $name => $value)
                     <input type="hidden" name="{{ $name }}" value="{{ $value }}">
                 @endforeach
                 @if (request()->filled('has_supporting_document'))

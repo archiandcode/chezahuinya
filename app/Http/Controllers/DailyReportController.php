@@ -23,7 +23,6 @@ class DailyReportController extends Controller
             'report_company_account_id' => ['nullable', 'integer', 'exists:report_company_accounts,id'],
             'daily_report_type_id' => ['nullable', 'integer', 'exists:daily_report_types,id'],
             'direction' => ['nullable', 'in:opening,income,expense'],
-            'search' => ['nullable', 'string', 'max:255'],
             'per_page' => ['nullable', 'integer', 'in:10,25,50,100'],
         ]);
 
@@ -113,16 +112,6 @@ class DailyReportController extends Controller
             ->when($filters['daily_report_type_id'] ?? null, fn (Builder $query, int|string $typeId) => $query->where('daily_report_type_id', $typeId))
             ->when($filters['direction'] ?? null, function (Builder $query, string $direction): void {
                 $query->whereHas('type', fn (Builder $query) => $query->where('direction', $direction));
-            })
-            ->when($filters['search'] ?? null, function (Builder $query, string $search): void {
-                $query->where(function (Builder $query) use ($search): void {
-                    $query
-                        ->where('counterparty', 'like', "%{$search}%")
-                        ->orWhere('comment', 'like', "%{$search}%")
-                        ->orWhereHas('company', fn (Builder $query) => $query->where('name', 'like', "%{$search}%"))
-                        ->orWhereHas('account', fn (Builder $query) => $query->where('account_number', 'like', "%{$search}%"))
-                        ->orWhereHas('type', fn (Builder $query) => $query->where('name', 'like', "%{$search}%"));
-                });
             });
     }
 
@@ -183,7 +172,6 @@ class DailyReportController extends Controller
             'report_company_account_id',
             'daily_report_type_id',
             'direction',
-            'search',
             'per_page',
             'page',
         ];

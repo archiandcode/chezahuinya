@@ -1,28 +1,30 @@
 @extends('layouts.adminlte')
 
-@section('title', 'Кассы | ' . config('app.name'))
-@section('page-title', 'Кассы')
+@section('title', 'Остатки по торговым | ' . config('app.name'))
+@section('page-title', 'Остатки по торговым')
 
 @php
     $money = fn ($value) => number_format((float) $value, 2, '.', ' ');
+    $filterKeys = ['date_from', 'date_to', 'product_group', 'quantity_from', 'quantity_to', 'amount_from', 'amount_to', 'per_page', 'page'];
     $activeFilters = collect([
         'date_from' => ['label' => 'Дата от', 'value' => $filters['date_from'] ?? null],
         'date_to' => ['label' => 'Дата до', 'value' => $filters['date_to'] ?? null],
-        'company' => ['label' => 'Компания', 'value' => $filters['company'] ?? null],
-        'cash_flow' => ['label' => 'ДДС', 'value' => $filters['cash_flow'] ?? null],
-        'direction' => ['label' => 'Тип', 'value' => ['income' => 'Поступление', 'expense' => 'Расход'][$filters['direction'] ?? ''] ?? null],
-        'has_supporting_document' => ['label' => 'СЗ', 'value' => ['yes' => 'Есть', 'no' => 'Нет'][$filters['has_supporting_document'] ?? ''] ?? null],
+        'product_group' => ['label' => 'Группа', 'value' => $filters['product_group'] ?? null],
+        'quantity_from' => ['label' => 'Кол-во от', 'value' => $filters['quantity_from'] ?? null],
+        'quantity_to' => ['label' => 'Кол-во до', 'value' => $filters['quantity_to'] ?? null],
+        'amount_from' => ['label' => 'Сумма от', 'value' => $filters['amount_from'] ?? null],
+        'amount_to' => ['label' => 'Сумма до', 'value' => $filters['amount_to'] ?? null],
     ])->filter(fn ($filter) => filled($filter['value']));
 @endphp
 
 @section('content')
     @if (session('toast_success'))
-        <div class="cash-success-toast" role="status" aria-live="polite">
-            <div class="cash-success-toast__content">
+        <div class="trading-stock-balance-success-toast" role="status" aria-live="polite">
+            <div class="trading-stock-balance-success-toast__content">
                 <i class="fas fa-check-circle"></i>
                 <span>{{ session('toast_success') }}</span>
             </div>
-            <div class="cash-success-toast__timer"></div>
+            <div class="trading-stock-balance-success-toast__timer"></div>
         </div>
     @endif
 
@@ -50,51 +52,51 @@
         <div class="col-lg-3 col-md-6">
             <div class="small-box bg-info">
                 <div class="inner">
-                    <h3>{{ $money($openingBalance) }}</h3>
-                    <p>Начальный остаток</p>
+                    <h3>{{ $money($totalQuantity) }}</h3>
+                    <p>Кол-во по фильтру</p>
                 </div>
                 <div class="icon">
-                    <i class="fas fa-wallet"></i>
+                    <i class="fas fa-boxes"></i>
                 </div>
             </div>
         </div>
         <div class="col-lg-3 col-md-6">
             <div class="small-box bg-success">
                 <div class="inner">
-                    <h3>{{ $money($totalIncome) }}</h3>
-                    <p>Поступления по фильтру</p>
+                    <h3>{{ $money($totalCostAmount) }}</h3>
+                    <p>Себестоимость</p>
                 </div>
                 <div class="icon">
-                    <i class="fas fa-arrow-down"></i>
+                    <i class="fas fa-coins"></i>
                 </div>
             </div>
         </div>
         <div class="col-lg-3 col-md-6">
-            <div class="small-box bg-danger">
+            <div class="small-box bg-warning">
                 <div class="inner">
-                    <h3>{{ $money($totalExpense) }}</h3>
-                    <p>Расходы по фильтру</p>
+                    <h3>{{ $groupsCount }}</h3>
+                    <p>Групп товара</p>
                 </div>
                 <div class="icon">
-                    <i class="fas fa-arrow-up"></i>
+                    <i class="fas fa-tags"></i>
                 </div>
             </div>
         </div>
         <div class="col-lg-3 col-md-6">
             <div class="small-box bg-secondary">
                 <div class="inner">
-                    <h3>{{ $money($currentBalance) }}</h3>
-                    <p>Текущий остаток</p>
+                    <h3>{{ $totalCount }}</h3>
+                    <p>Записей по фильтру</p>
                 </div>
                 <div class="icon">
-                    <i class="fas fa-balance-scale"></i>
+                    <i class="fas fa-list"></i>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="card filter-card">
-        <div class="card-header js-filter-header" data-toggle-target="#cashFilters">
+        <div class="card-header js-filter-header" data-toggle-target="#tradingStockBalanceFilters">
             <h3 class="filter-title">
                 <i class="fas fa-sliders-h text-muted"></i>
                 Фильтры
@@ -107,16 +109,16 @@
                     type="button"
                     class="btn btn-tool js-filter-toggle {{ request('filter_expanded') === '1' ? '' : 'collapsed' }}"
                     data-toggle="collapse"
-                    data-target="#cashFilters"
+                    data-target="#tradingStockBalanceFilters"
                     aria-expanded="{{ request('filter_expanded') === '1' ? 'true' : 'false' }}"
-                    aria-controls="cashFilters"
+                    aria-controls="tradingStockBalanceFilters"
                     title="Свернуть / развернуть"
                 >
                     <i class="fas fa-chevron-down"></i>
                 </button>
             </div>
         </div>
-        <form method="GET" action="{{ route('cash-transactions.index') }}" id="cashFilters" class="collapse {{ request('filter_expanded') === '1' ? 'show' : '' }}">
+        <form method="GET" action="{{ route('trading-stock-balances.index') }}" id="tradingStockBalanceFilters" class="collapse {{ request('filter_expanded') === '1' ? 'show' : '' }}">
             <input type="hidden" name="filter_expanded" value="{{ request('filter_expanded') === '1' ? '1' : '0' }}">
             @if ($activeFilters->isNotEmpty())
                 <div class="filter-summary">
@@ -153,59 +155,49 @@
                         Параметры
                     </div>
                     <div class="row filter-panel">
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <div class="form-group">
-                                <label for="company">Компания</label>
-                                <select id="company" name="company" class="form-control">
+                                <label for="product_group">Группа товара</label>
+                                <select id="product_group" name="product_group" class="form-control">
                                     <option value="">Все</option>
-                                    @foreach ($companies as $company)
-                                        <option value="{{ $company }}" @selected(($filters['company'] ?? '') === $company)>{{ $company }}</option>
+                                    @foreach ($productGroups as $productGroup)
+                                        <option value="{{ $productGroup }}" @selected(($filters['product_group'] ?? '') === $productGroup)>{{ $productGroup }}</option>
                                     @endforeach
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <div class="form-group">
-                                <label for="cash_flow">ДДС</label>
-                                <select id="cash_flow" name="cash_flow" class="form-control">
-                                    <option value="">Все</option>
-                                    @foreach ($cashFlows as $cashFlow)
-                                        <option value="{{ $cashFlow }}" @selected(($filters['cash_flow'] ?? '') === $cashFlow)>{{ $cashFlow }}</option>
-                                    @endforeach
-                                </select>
+                                <label for="quantity_from">Кол-во от</label>
+                                <input type="number" step="0.01" min="0" id="quantity_from" name="quantity_from" value="{{ $filters['quantity_from'] ?? '' }}" class="form-control trading-stock-balance-number-input">
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <div class="form-group">
-                                <label for="direction">Тип суммы</label>
-                                <select id="direction" name="direction" class="form-control">
-                                    <option value="">Все</option>
-                                    <option value="income" @selected(($filters['direction'] ?? '') === 'income')>Поступление</option>
-                                    <option value="expense" @selected(($filters['direction'] ?? '') === 'expense')>Расход</option>
-                                </select>
+                                <label for="quantity_to">Кол-во до</label>
+                                <input type="number" step="0.01" min="0" id="quantity_to" name="quantity_to" value="{{ $filters['quantity_to'] ?? '' }}" class="form-control trading-stock-balance-number-input">
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <div class="form-group">
-                                <label for="has_supporting_document">СЗ</label>
-                                <select id="has_supporting_document" name="has_supporting_document" class="form-control">
-                                    <option value="">Все</option>
-                                    <option value="yes" @selected(($filters['has_supporting_document'] ?? '') === 'yes')>Есть</option>
-                                    <option value="no" @selected(($filters['has_supporting_document'] ?? '') === 'no')>Нет</option>
-                                </select>
+                                <label for="amount_from">Сумма от</label>
+                                <input type="number" step="0.01" min="0" id="amount_from" name="amount_from" value="{{ $filters['amount_from'] ?? '' }}" class="form-control trading-stock-balance-number-input">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label for="amount_to">Сумма до</label>
+                                <input type="number" step="0.01" min="0" id="amount_to" name="amount_to" value="{{ $filters['amount_to'] ?? '' }}" class="form-control trading-stock-balance-number-input">
                             </div>
                         </div>
                     </div>
-                </div>
-
-                <div class="filter-section">
                     <div class="row align-items-end filter-panel">
                         <div class="col-md-12">
                             <div class="filter-actions">
                                 <button type="submit" class="btn btn-primary">
                                     <i class="fas fa-filter mr-1"></i> Применить
                                 </button>
-                                <a href="{{ route('cash-transactions.index', request()->filled('per_page') ? ['per_page' => request('per_page')] : []) }}" class="btn btn-default">
+                                <a href="{{ route('trading-stock-balances.index', request()->filled('per_page') ? ['per_page' => request('per_page')] : []) }}" class="btn btn-default">
                                     <i class="fas fa-times mr-1"></i> Сбросить
                                 </a>
                             </div>
@@ -218,18 +210,18 @@
 
     <div class="card">
         <div class="card-header">
-            <h3 class="card-title">Операции кассы: {{ $totalCount }}</h3>
+            <h3 class="card-title">Остатки по торговым: {{ $totalCount }}</h3>
             <div class="card-tools">
-                <button type="button" class="btn btn-primary btn-sm mr-2" data-toggle="modal" data-target="#createCashTransactionModal">
+                <button type="button" class="btn btn-primary btn-sm mr-2" data-toggle="modal" data-target="#createTradingStockBalanceModal">
                     <i class="fas fa-plus mr-1"></i> Новая запись
                 </button>
-                <form method="GET" action="{{ route('cash-transactions.index') }}" class="d-inline-block">
-                    @foreach (request()->only(['date_from', 'date_to', 'company', 'cash_flow', 'has_supporting_document', 'direction', 'filter_expanded']) as $name => $value)
+                <form method="GET" action="{{ route('trading-stock-balances.index') }}" class="d-inline-block">
+                    @foreach (request()->only(['date_from', 'date_to', 'product_group', 'quantity_from', 'quantity_to', 'amount_from', 'amount_to', 'filter_expanded']) as $name => $value)
                         <input type="hidden" name="{{ $name }}" value="{{ $value }}">
                     @endforeach
                     <select name="per_page" class="form-control form-control-sm d-inline-block w-auto js-per-page-select" aria-label="На странице">
                         @foreach ([10, 25, 50, 100] as $size)
-                            <option value="{{ $size }}" @selected((int) ($filters['per_page'] ?? 10) === $size)>{{ $size }}</option>
+                            <option value="{{ $size }}" @selected((int) ($filters['per_page'] ?? 25) === $size)>{{ $size }}</option>
                         @endforeach
                     </select>
                 </form>
@@ -239,56 +231,41 @@
             <table class="table table-hover table-bordered text-nowrap mb-0">
                 <thead class="thead-light">
                     <tr>
-                        <th style="width: 60px;">#</th>
+                        <th style="width: 70px;">№ пп</th>
                         <th>Дата</th>
-                        <th class="text-right">Сумма поступления KZT</th>
-                        <th class="text-right">Сумма расхода KZT</th>
-                        <th class="text-right">Остаток KZT</th>
-                        <th>Компания</th>
-                        <th>ДДС</th>
-                        <th>Наличие СЗ</th>
+                        <th>Группа товара</th>
+                        <th class="text-right">Кол-во</th>
+                        <th class="text-right">Сумма себестоимости</th>
                         <th class="text-right">Действия</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse ($transactions as $transaction)
+                    @forelse ($balances as $balance)
                         <tr>
-                            <td>{{ $transactions->firstItem() + $loop->index }}</td>
-                            <td>{{ $transaction->transaction_date->format('d.m.Y') }}</td>
-                            <td class="text-right text-success">{{ $transaction->income_amount > 0 ? $money($transaction->income_amount) : '' }}</td>
-                            <td class="text-right text-danger">{{ $transaction->expense_amount > 0 ? $money($transaction->expense_amount) : '' }}</td>
-                            <td class="text-right font-weight-bold">{{ $money($balances[$transaction->id] ?? $openingBalance) }}</td>
-                            <td>{{ $transaction->company ?: '-' }}</td>
-                            <td>{{ $transaction->cash_flow ?: '-' }}</td>
-                            <td>
-                                @if (is_null($transaction->has_supporting_document))
-                                    -
-                                @elseif ($transaction->has_supporting_document)
-                                    <span class="badge badge-success">Есть</span>
-                                @else
-                                    <span class="badge badge-secondary">Нет</span>
-                                @endif
-                            </td>
+                            <td>{{ $balance->sort_order ?: $balances->firstItem() + $loop->index }}</td>
+                            <td>{{ $balance->balance_date->format('d.m.Y') }}</td>
+                            <td>{{ $balance->product_group }}</td>
+                            <td class="text-right font-weight-bold">{{ $money($balance->quantity) }}</td>
+                            <td class="text-right font-weight-bold">{{ $money($balance->cost_amount) }}</td>
                             <td class="text-right">
                                 <button
                                     type="button"
-                                    class="btn btn-sm btn-outline-primary js-edit-transaction"
+                                    class="btn btn-sm btn-outline-primary js-edit-trading-stock-balance"
                                     data-toggle="modal"
-                                    data-target="#editCashTransactionModal"
-                                    data-action="{{ route('cash-transactions.update', $transaction) }}"
-                                    data-date="{{ $transaction->transaction_date->format('Y-m-d') }}"
-                                    data-income="{{ $transaction->income_amount }}"
-                                    data-expense="{{ $transaction->expense_amount }}"
-                                    data-company="{{ $transaction->company }}"
-                                    data-cash-flow="{{ $transaction->cash_flow }}"
-                                    data-has-document="{{ is_null($transaction->has_supporting_document) ? '' : (int) $transaction->has_supporting_document }}"
+                                    data-target="#editTradingStockBalanceModal"
+                                    data-action="{{ route('trading-stock-balances.update', $balance) }}"
+                                    data-balance-date="{{ $balance->balance_date->format('Y-m-d') }}"
+                                    data-sort-order="{{ $balance->sort_order }}"
+                                    data-product-group="{{ $balance->product_group }}"
+                                    data-quantity="{{ $balance->quantity }}"
+                                    data-cost-amount="{{ $balance->cost_amount }}"
                                 >
                                     <i class="fas fa-edit"></i>
                                 </button>
-                                <form method="POST" action="{{ route('cash-transactions.destroy', $transaction) }}" class="d-inline" onsubmit="return confirm('Удалить запись кассы?')">
+                                <form method="POST" action="{{ route('trading-stock-balances.destroy', $balance) }}" class="d-inline" onsubmit="return confirm('Удалить запись остатка по торговым?')">
                                     @csrf
                                     @method('DELETE')
-                                    @foreach (request()->only(['date_from', 'date_to', 'company', 'cash_flow', 'has_supporting_document', 'direction', 'per_page', 'page']) as $name => $value)
+                                    @foreach (request()->only($filterKeys) as $name => $value)
                                         <input type="hidden" name="{{ $name }}" value="{{ $value }}">
                                     @endforeach
                                     <button type="submit" class="btn btn-sm btn-outline-danger">
@@ -299,51 +276,50 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="text-center text-muted py-4">Записей пока нет</td>
+                            <td colspan="6" class="text-center text-muted py-4">Записей пока нет</td>
                         </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
-        @if ($transactions->hasPages())
+        @if ($balances->hasPages())
             <div class="card-footer">
-                {{ $transactions->links() }}
+                {{ $balances->links() }}
             </div>
         @endif
     </div>
 
-    @include('cash-transactions.partials.form-modal', [
-        'modalId' => 'createCashTransactionModal',
-        'title' => 'Новая запись кассы',
-        'action' => route('cash-transactions.store'),
+    @include('trading-stock-balances.partials.form-modal', [
+        'modalId' => 'createTradingStockBalanceModal',
+        'title' => 'Новая запись остатка по торговым',
+        'action' => route('trading-stock-balances.store'),
         'method' => 'POST',
-        'transaction' => null,
-        'defaultTransactionDate' => now()->toDateString(),
+        'filterKeys' => $filterKeys,
+        'defaultBalanceDate' => '2026-04-09',
     ])
 
-    @include('cash-transactions.partials.form-modal', [
-        'modalId' => 'editCashTransactionModal',
-        'title' => 'Редактировать запись кассы',
+    @include('trading-stock-balances.partials.form-modal', [
+        'modalId' => 'editTradingStockBalanceModal',
+        'title' => 'Редактировать остаток по торговым',
         'action' => '#',
         'method' => 'PUT',
-        'transaction' => null,
+        'filterKeys' => $filterKeys,
     ])
-
 @endsection
 
 @push('scripts')
     <style>
-        .cash-transaction-amount-input {
+        .trading-stock-balance-number-input {
             -moz-appearance: textfield;
         }
 
-        .cash-transaction-amount-input::-webkit-outer-spin-button,
-        .cash-transaction-amount-input::-webkit-inner-spin-button {
+        .trading-stock-balance-number-input::-webkit-outer-spin-button,
+        .trading-stock-balance-number-input::-webkit-inner-spin-button {
             -webkit-appearance: none;
             margin: 0;
         }
 
-        .cash-success-toast {
+        .trading-stock-balance-success-toast {
             position: fixed;
             top: 1rem;
             right: 1rem;
@@ -357,26 +333,26 @@
             box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .15);
         }
 
-        .cash-success-toast__content {
+        .trading-stock-balance-success-toast__content {
             display: flex;
             align-items: center;
             gap: .5rem;
             padding: .75rem 1rem;
         }
 
-        .cash-success-toast__timer {
+        .trading-stock-balance-success-toast__timer {
             height: 3px;
             background: #28a745;
-            animation: cashSuccessToastTimer 4s linear forwards;
+            animation: tradingStockBalanceSuccessToastTimer 4s linear forwards;
         }
 
-        .cash-success-toast.is-hiding {
+        .trading-stock-balance-success-toast.is-hiding {
             opacity: 0;
             transform: translateY(-8px);
             transition: opacity .2s ease, transform .2s ease;
         }
 
-        @keyframes cashSuccessToastTimer {
+        @keyframes tradingStockBalanceSuccessToastTimer {
             from {
                 width: 100%;
             }
@@ -388,7 +364,7 @@
     </style>
     <script>
         $(function () {
-            $('#cashFilters').on('submit', function () {
+            $('#tradingStockBalanceFilters').on('submit', function () {
                 $(this).find('[name="filter_expanded"]').val($(this).hasClass('show') ? '1' : '0');
             });
 
@@ -401,31 +377,29 @@
                 }
             }
 
-            $('.js-edit-transaction').on('click', function () {
+            $('.js-edit-trading-stock-balance').on('click', function () {
                 var button = $(this);
-                var modal = $('#editCashTransactionModal');
+                var modal = $('#editTradingStockBalanceModal');
 
                 modal.find('form').attr('action', button.attr('data-action'));
-                modal.find('[name="transaction_date"]').val(button.attr('data-date'));
-                modal.find('[name="income_amount"]').val(button.attr('data-income'));
-                modal.find('[name="expense_amount"]').val(button.attr('data-expense'));
-                modal.find('[name="company"]').val(button.attr('data-company'));
-                modal.find('[name="cash_flow"]').val(button.attr('data-cash-flow'));
-                modal.find('[name="has_supporting_document"]').val(button.attr('data-has-document'));
+                modal.find('[name="balance_date"]').val(button.attr('data-balance-date'));
+                modal.find('[name="sort_order"]').val(button.attr('data-sort-order'));
+                modal.find('[name="product_group"]').val(button.attr('data-product-group'));
+                modal.find('[name="quantity"]').val(button.attr('data-quantity'));
+                modal.find('[name="cost_amount"]').val(button.attr('data-cost-amount'));
             });
 
-            $('#createCashTransactionModal').on('show.bs.modal', function () {
+            $('#createTradingStockBalanceModal').on('show.bs.modal', function () {
                 var modal = $(this);
 
-                modal.find('[name="transaction_date"]').val('{{ now()->toDateString() }}');
-                modal.find('[name="income_amount"]').val('');
-                modal.find('[name="expense_amount"]').val('');
-                modal.find('[name="company"]').val('');
-                modal.find('[name="cash_flow"]').val('');
-                modal.find('[name="has_supporting_document"]').val('');
+                modal.find('[name="balance_date"]').val('2026-04-09');
+                modal.find('[name="sort_order"]').val('');
+                modal.find('[name="product_group"]').val('');
+                modal.find('[name="quantity"]').val('');
+                modal.find('[name="cost_amount"]').val('');
             });
 
-            var toast = $('.cash-success-toast');
+            var toast = $('.trading-stock-balance-success-toast');
 
             if (toast.length) {
                 setTimeout(function () {

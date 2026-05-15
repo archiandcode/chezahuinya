@@ -4,7 +4,10 @@
 @section('page-title', 'Справочник компаний')
 
 @php
-    $filterKeys = ['category', 'search', 'per_page', 'page'];
+    $filterKeys = ['category', 'per_page', 'page'];
+    $activeFilters = collect([
+        'category' => ['label' => 'Категория', 'value' => $filters['category'] ?? null],
+    ])->filter(fn ($filter) => filled($filter['value']));
 @endphp
 
 @section('content')
@@ -68,10 +71,16 @@
         </div>
     </div>
 
-    <div class="card">
+    <div class="card filter-card">
         <div class="card-header js-filter-header" data-toggle-target="#companyFilters">
-            <h3 class="card-title">Фильтры</h3>
-            <div class="card-tools">
+            <h3 class="filter-title">
+                <i class="fas fa-sliders-h text-muted"></i>
+                Фильтры
+            </h3>
+            <div class="filter-meta">
+                @if ($activeFilters->isNotEmpty())
+                    <span class="filter-count">{{ $activeFilters->count() }} активно</span>
+                @endif
                 <button
                     type="button"
                     class="btn btn-tool js-filter-toggle {{ request('filter_expanded') === '1' ? '' : 'collapsed' }}"
@@ -87,32 +96,46 @@
         </div>
         <form method="GET" action="{{ route('report-companies.index') }}" id="companyFilters" class="collapse {{ request('filter_expanded') === '1' ? 'show' : '' }}">
             <input type="hidden" name="filter_expanded" value="{{ request('filter_expanded') === '1' ? '1' : '0' }}">
+            @if ($activeFilters->isNotEmpty())
+                <div class="filter-summary">
+                    @foreach ($activeFilters as $filter)
+                        <span class="filter-chip"><strong>{{ $filter['label'] }}:</strong> {{ $filter['value'] }}</span>
+                    @endforeach
+                </div>
+            @endif
             <div class="card-body">
-                <div class="row align-items-end">
-                    <div class="col-md-4">
-                        <div class="form-group mb-md-0">
-                            <label for="category">Категория</label>
-                            <select id="category" name="category" class="form-control">
-                                <option value="">Все</option>
-                                @foreach ($categories as $category)
-                                    <option value="{{ $category }}" @selected(($filters['category'] ?? '') === $category)>{{ $category }}</option>
-                                @endforeach
-                            </select>
+                <div class="filter-section">
+                    <div class="filter-section-title">
+                        <i class="fas fa-layer-group text-muted"></i>
+                        Категория
+                    </div>
+                    <div class="row filter-panel">
+                        <div class="col-md-4">
+                            <div class="form-group mb-md-0">
+                                <label for="category">Категория</label>
+                                <select id="category" name="category" class="form-control">
+                                    <option value="">Все</option>
+                                    @foreach ($categories as $category)
+                                        <option value="{{ $category }}" @selected(($filters['category'] ?? '') === $category)>{{ $category }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-5">
-                        <div class="form-group mb-md-0">
-                            <label for="search">Поиск</label>
-                            <input type="search" id="search" name="search" value="{{ $filters['search'] ?? '' }}" class="form-control" placeholder="Название, категория или счет">
+                </div>
+
+                <div class="filter-section">
+                    <div class="row align-items-end filter-panel">
+                        <div class="col-md-12">
+                            <div class="filter-actions">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-filter mr-1"></i> Применить
+                                </button>
+                                <a href="{{ route('report-companies.index', request()->filled('per_page') ? ['per_page' => request('per_page')] : []) }}" class="btn btn-default">
+                                    <i class="fas fa-times mr-1"></i> Сбросить
+                                </a>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col-md-3 text-md-right">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-filter mr-1"></i> Применить
-                        </button>
-                        <a href="{{ route('report-companies.index', request()->filled('per_page') ? ['per_page' => request('per_page')] : []) }}" class="btn btn-default">
-                            <i class="fas fa-times mr-1"></i> Сбросить
-                        </a>
                     </div>
                 </div>
             </div>
@@ -127,7 +150,7 @@
                     <i class="fas fa-plus mr-1"></i> Новая компания
                 </button>
                 <form method="GET" action="{{ route('report-companies.index') }}" class="d-inline-block">
-                    @foreach (request()->only(['category', 'search', 'filter_expanded']) as $name => $value)
+                    @foreach (request()->only(['category', 'filter_expanded']) as $name => $value)
                         <input type="hidden" name="{{ $name }}" value="{{ $value }}">
                     @endforeach
                     <select name="per_page" class="form-control form-control-sm d-inline-block w-auto js-per-page-select" aria-label="На странице">
@@ -279,14 +302,6 @@
 
 @push('scripts')
     <style>
-        .js-filter-toggle .fa-chevron-down {
-            transition: transform .2s ease;
-        }
-
-        .js-filter-toggle[aria-expanded="true"] .fa-chevron-down {
-            transform: rotate(180deg);
-        }
-
         .company-success-toast {
             position: fixed;
             top: 1rem;

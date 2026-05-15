@@ -22,7 +22,6 @@ class CashTransactionController extends Controller
             'cash_flow' => ['nullable', 'string', 'max:255'],
             'has_supporting_document' => ['nullable', 'in:yes,no'],
             'direction' => ['nullable', 'in:income,expense'],
-            'search' => ['nullable', 'string', 'max:255'],
             'per_page' => ['nullable', 'integer', 'in:10,25,50,100'],
         ]);
 
@@ -84,7 +83,6 @@ class CashTransactionController extends Controller
             'company',
             'cash_flow',
             'direction',
-            'search',
             'per_page',
             'page',
         ]);
@@ -110,7 +108,6 @@ class CashTransactionController extends Controller
                 'cash_flow',
                 'has_supporting_document',
                 'direction',
-                'search',
                 'per_page',
                 'page',
             ]))
@@ -135,13 +132,6 @@ class CashTransactionController extends Controller
                 $direction === 'income'
                     ? $query->where('income_amount', '>', 0)
                     : $query->where('expense_amount', '>', 0);
-            })
-            ->when($filters['search'] ?? null, function (Builder $query, string $search): void {
-                $query->where(function (Builder $query) use ($search): void {
-                    $query
-                        ->where('company', 'like', "%{$search}%")
-                        ->orWhere('cash_flow', 'like', "%{$search}%");
-                });
             });
     }
 

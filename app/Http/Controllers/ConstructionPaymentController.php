@@ -20,7 +20,6 @@ class ConstructionPaymentController extends Controller
             'payment_source' => ['nullable', 'string', 'max:255'],
             'amount_from' => ['nullable', 'numeric', 'min:0'],
             'amount_to' => ['nullable', 'numeric', 'min:0'],
-            'search' => ['nullable', 'string', 'max:255'],
             'per_page' => ['nullable', 'integer', 'in:10,25,50,100'],
         ]);
 
@@ -106,16 +105,7 @@ class ConstructionPaymentController extends Controller
             ->when($filters['contract'] ?? null, fn (Builder $query, string $contract) => $query->where('contract', $contract))
             ->when($filters['payment_source'] ?? null, fn (Builder $query, string $source) => $query->where('payment_source', $source))
             ->when($filters['amount_from'] ?? null, fn (Builder $query, string $amount) => $query->where('amount', '>=', $amount))
-            ->when($filters['amount_to'] ?? null, fn (Builder $query, string $amount) => $query->where('amount', '<=', $amount))
-            ->when($filters['search'] ?? null, function (Builder $query, string $search): void {
-                $query->where(function (Builder $query) use ($search): void {
-                    $query
-                        ->where('supplier', 'like', "%{$search}%")
-                        ->orWhere('contract', 'like', "%{$search}%")
-                        ->orWhere('purpose', 'like', "%{$search}%")
-                        ->orWhere('payment_source', 'like', "%{$search}%");
-                });
-            });
+            ->when($filters['amount_to'] ?? null, fn (Builder $query, string $amount) => $query->where('amount', '<=', $amount));
     }
 
     /**
@@ -153,7 +143,6 @@ class ConstructionPaymentController extends Controller
             'payment_source',
             'amount_from',
             'amount_to',
-            'search',
             'per_page',
             'page',
         ];

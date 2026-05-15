@@ -5,9 +5,20 @@
 
 @php
     $money = fn ($value) => number_format((float) $value, 2, '.', ' ');
-    $filterKeys = ['date_from', 'date_to', 'report_company_id', 'report_company_account_id', 'daily_report_type_id', 'direction', 'search', 'per_page', 'page'];
+    $filterKeys = ['date_from', 'date_to', 'report_company_id', 'report_company_account_id', 'daily_report_type_id', 'direction', 'per_page', 'page'];
     $directionLabels = ['opening' => 'Начало дня', 'income' => 'Приход', 'expense' => 'Расход'];
     $directionBadges = ['opening' => 'badge-info', 'income' => 'badge-success', 'expense' => 'badge-danger'];
+    $selectedCompany = filled($filters['report_company_id'] ?? null) ? $companies->firstWhere('id', (int) $filters['report_company_id']) : null;
+    $selectedAccount = filled($filters['report_company_account_id'] ?? null) ? $accounts->firstWhere('id', (int) $filters['report_company_account_id']) : null;
+    $selectedType = filled($filters['daily_report_type_id'] ?? null) ? $types->firstWhere('id', (int) $filters['daily_report_type_id']) : null;
+    $activeFilters = collect([
+        'date_from' => ['label' => 'Дата от', 'value' => $filters['date_from'] ?? null],
+        'date_to' => ['label' => 'Дата до', 'value' => $filters['date_to'] ?? null],
+        'report_company_id' => ['label' => 'Компания', 'value' => $selectedCompany?->name],
+        'report_company_account_id' => ['label' => 'Счет', 'value' => $selectedAccount?->account_number],
+        'daily_report_type_id' => ['label' => 'Тип', 'value' => $selectedType?->name],
+        'direction' => ['label' => 'Направление', 'value' => $directionLabels[$filters['direction'] ?? ''] ?? null],
+    ])->filter(fn ($filter) => filled($filter['value']));
 @endphp
 
 @section('content')
@@ -118,10 +129,16 @@
         </div>
     </div>
 
-    <div class="card">
+    <div class="card filter-card">
         <div class="card-header js-filter-header" data-toggle-target="#dailyReportFilters">
-            <h3 class="card-title">Фильтры</h3>
-            <div class="card-tools">
+            <h3 class="filter-title">
+                <i class="fas fa-sliders-h text-muted"></i>
+                Фильтры
+            </h3>
+            <div class="filter-meta">
+                @if ($activeFilters->isNotEmpty())
+                    <span class="filter-count">{{ $activeFilters->count() }} активно</span>
+                @endif
                 <button
                     type="button"
                     class="btn btn-tool js-filter-toggle {{ request('filter_expanded') === '1' ? '' : 'collapsed' }}"
@@ -137,93 +154,123 @@
         </div>
         <form method="GET" action="{{ route('daily-reports.index') }}" id="dailyReportFilters" class="collapse {{ request('filter_expanded') === '1' ? 'show' : '' }}">
             <input type="hidden" name="filter_expanded" value="{{ request('filter_expanded') === '1' ? '1' : '0' }}">
+            @if ($activeFilters->isNotEmpty())
+                <div class="filter-summary">
+                    @foreach ($activeFilters as $filter)
+                        <span class="filter-chip"><strong>{{ $filter['label'] }}:</strong> {{ $filter['value'] }}</span>
+                    @endforeach
+                </div>
+            @endif
             <div class="card-body">
-                <div class="row">
-                    <div class="col-md-2">
-                        <div class="form-group">
-                            <label for="date_from">Дата от</label>
-                            <input type="date" id="date_from" name="date_from" value="{{ $filters['date_from'] ?? '' }}" class="form-control">
-                        </div>
+                <div class="filter-section">
+                    <div class="filter-section-title">
+                        <i class="far fa-calendar-alt text-muted"></i>
+                        Период
                     </div>
-                    <div class="col-md-2">
-                        <div class="form-group">
-                            <label for="date_to">Дата до</label>
-                            <input type="date" id="date_to" name="date_to" value="{{ $filters['date_to'] ?? '' }}" class="form-control">
+                    <div class="row filter-panel">
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="date_from">Дата от</label>
+                                <input type="date" id="date_from" name="date_from" value="{{ $filters['date_from'] ?? '' }}" class="form-control">
+                            </div>
                         </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label for="report_company_id">Компания</label>
-                            <select id="report_company_id" name="report_company_id" class="form-control js-company-select">
-                                <option value="">Все</option>
-                                @foreach ($companies->groupBy('category') as $category => $groupedCompanies)
-                                    <optgroup label="{{ $category ?: 'Без категории' }}">
-                                        @foreach ($groupedCompanies as $company)
-                                            <option value="{{ $company->id }}" @selected((int) ($filters['report_company_id'] ?? 0) === $company->id)>{{ $company->name }}</option>
-                                        @endforeach
-                                    </optgroup>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label for="report_company_account_id">Счет</label>
-                            <select id="report_company_account_id" name="report_company_account_id" class="form-control js-account-select">
-                                <option value="">Все</option>
-                                @foreach ($accounts as $account)
-                                    <option
-                                        value="{{ $account->id }}"
-                                        data-company-id="{{ $account->report_company_id }}"
-                                        @selected((int) ($filters['report_company_account_id'] ?? 0) === $account->id)
-                                    >
-                                        {{ $account->account_number }}
-                                    </option>
-                                @endforeach
-                            </select>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="date_to">Дата до</label>
+                                <input type="date" id="date_to" name="date_to" value="{{ $filters['date_to'] ?? '' }}" class="form-control">
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="row align-items-end">
-                    <div class="col-md-3">
-                        <div class="form-group mb-md-0">
-                            <label for="daily_report_type_id">Тип</label>
-                            <select id="daily_report_type_id" name="daily_report_type_id" class="form-control">
-                                <option value="">Все</option>
-                                @foreach ($types->groupBy('direction') as $direction => $groupedTypes)
-                                    <optgroup label="{{ $directionLabels[$direction] ?? $direction }}">
-                                        @foreach ($groupedTypes as $type)
-                                            <option value="{{ $type->id }}" @selected((int) ($filters['daily_report_type_id'] ?? 0) === $type->id)>{{ $type->name }}</option>
-                                        @endforeach
-                                    </optgroup>
-                                @endforeach
-                            </select>
+
+                <div class="filter-section">
+                    <div class="filter-section-title">
+                        <i class="fas fa-building text-muted"></i>
+                        Компания и счет
+                    </div>
+                    <div class="row filter-panel">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="report_company_id">Компания</label>
+                                <select id="report_company_id" name="report_company_id" class="form-control js-company-select">
+                                    <option value="">Все</option>
+                                    @foreach ($companies->groupBy('category') as $category => $groupedCompanies)
+                                        <optgroup label="{{ $category ?: 'Без категории' }}">
+                                            @foreach ($groupedCompanies as $company)
+                                                <option value="{{ $company->id }}" @selected((int) ($filters['report_company_id'] ?? 0) === $company->id)>{{ $company->name }}</option>
+                                            @endforeach
+                                        </optgroup>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="report_company_account_id">Счет</label>
+                                <select id="report_company_account_id" name="report_company_account_id" class="form-control js-account-select">
+                                    <option value="">Все</option>
+                                    @foreach ($accounts as $account)
+                                        <option
+                                            value="{{ $account->id }}"
+                                            data-company-id="{{ $account->report_company_id }}"
+                                            @selected((int) ($filters['report_company_account_id'] ?? 0) === $account->id)
+                                        >
+                                            {{ $account->account_number }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-2">
-                        <div class="form-group mb-md-0">
-                            <label for="direction">Направление</label>
-                            <select id="direction" name="direction" class="form-control">
-                                <option value="">Все</option>
-                                @foreach ($directionLabels as $value => $label)
-                                    <option value="{{ $value }}" @selected(($filters['direction'] ?? '') === $value)>{{ $label }}</option>
-                                @endforeach
-                            </select>
+                </div>
+
+                <div class="filter-section">
+                    <div class="filter-section-title">
+                        <i class="fas fa-list-ul text-muted"></i>
+                        Операция
+                    </div>
+                    <div class="row filter-panel">
+                        <div class="col-md-4">
+                            <div class="form-group mb-md-0">
+                                <label for="daily_report_type_id">Тип</label>
+                                <select id="daily_report_type_id" name="daily_report_type_id" class="form-control">
+                                    <option value="">Все</option>
+                                    @foreach ($types->groupBy('direction') as $direction => $groupedTypes)
+                                        <optgroup label="{{ $directionLabels[$direction] ?? $direction }}">
+                                            @foreach ($groupedTypes as $type)
+                                                <option value="{{ $type->id }}" @selected((int) ($filters['daily_report_type_id'] ?? 0) === $type->id)>{{ $type->name }}</option>
+                                            @endforeach
+                                        </optgroup>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group mb-md-0">
+                                <label for="direction">Направление</label>
+                                <select id="direction" name="direction" class="form-control">
+                                    <option value="">Все</option>
+                                    @foreach ($directionLabels as $value => $label)
+                                        <option value="{{ $value }}" @selected(($filters['direction'] ?? '') === $value)>{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-4">
-                        <div class="form-group mb-md-0">
-                            <label for="search">Поиск</label>
-                            <input type="search" id="search" name="search" value="{{ $filters['search'] ?? '' }}" class="form-control" placeholder="Компания, счет, тип, контрагент или комментарий">
+                </div>
+
+                <div class="filter-section">
+                    <div class="row align-items-end filter-panel">
+                        <div class="col-md-12">
+                            <div class="filter-actions">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-filter mr-1"></i> Применить
+                                </button>
+                                <a href="{{ route('daily-reports.index', request()->filled('per_page') ? ['per_page' => request('per_page')] : []) }}" class="btn btn-default">
+                                    <i class="fas fa-times mr-1"></i> Сбросить
+                                </a>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col-md-3 text-md-right">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-filter mr-1"></i> Применить
-                        </button>
-                        <a href="{{ route('daily-reports.index', request()->filled('per_page') ? ['per_page' => request('per_page')] : []) }}" class="btn btn-default">
-                            <i class="fas fa-times mr-1"></i> Сбросить
-                        </a>
                     </div>
                 </div>
             </div>
@@ -238,7 +285,7 @@
                     <i class="fas fa-plus mr-1"></i> Новая запись
                 </button>
                 <form method="GET" action="{{ route('daily-reports.index') }}" class="d-inline-block">
-                    @foreach (request()->only(['date_from', 'date_to', 'report_company_id', 'report_company_account_id', 'daily_report_type_id', 'direction', 'search', 'filter_expanded']) as $name => $value)
+                    @foreach (request()->only(['date_from', 'date_to', 'report_company_id', 'report_company_account_id', 'daily_report_type_id', 'direction', 'filter_expanded']) as $name => $value)
                         <input type="hidden" name="{{ $name }}" value="{{ $value }}">
                     @endforeach
                     <select name="per_page" class="form-control form-control-sm d-inline-block w-auto js-per-page-select" aria-label="На странице">
@@ -349,14 +396,6 @@
 
 @push('scripts')
     <style>
-        .js-filter-toggle .fa-chevron-down {
-            transition: transform .2s ease;
-        }
-
-        .js-filter-toggle[aria-expanded="true"] .fa-chevron-down {
-            transform: rotate(180deg);
-        }
-
         .daily-report-amount-input {
             -moz-appearance: textfield;
         }
