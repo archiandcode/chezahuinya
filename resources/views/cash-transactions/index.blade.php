@@ -5,11 +5,15 @@
 
 @php
     $money = fn ($value) => number_format((float) $value, 2, '.', ' ');
+    $cashRegisterNames = $cashRegisters->pluck('name', 'id');
+    $companyNames = $companies->pluck('name', 'id');
+    $cashFlowNames = $cashFlows->pluck('name', 'id');
     $activeFilters = collect([
+        'cash_register_id' => ['label' => 'Касса', 'value' => $cashRegisterNames[(int) ($filters['cash_register_id'] ?? 0)] ?? null],
         'date_from' => ['label' => 'Дата от', 'value' => $filters['date_from'] ?? null],
         'date_to' => ['label' => 'Дата до', 'value' => $filters['date_to'] ?? null],
-        'company' => ['label' => 'Компания', 'value' => $filters['company'] ?? null],
-        'cash_flow' => ['label' => 'ДДС', 'value' => $filters['cash_flow'] ?? null],
+        'cash_company_id' => ['label' => 'Компания', 'value' => $companyNames[(int) ($filters['cash_company_id'] ?? 0)] ?? null],
+        'cash_flow_category_id' => ['label' => 'ДДС', 'value' => $cashFlowNames[(int) ($filters['cash_flow_category_id'] ?? 0)] ?? null],
         'direction' => ['label' => 'Тип', 'value' => ['income' => 'Поступление', 'expense' => 'Расход'][$filters['direction'] ?? ''] ?? null],
         'has_supporting_document' => ['label' => 'СЗ', 'value' => ['yes' => 'Есть', 'no' => 'Нет'][$filters['has_supporting_document'] ?? ''] ?? null],
     ])->filter(fn ($filter) => filled($filter['value']));
@@ -35,7 +39,7 @@
         </div>
     @endif
 
-    @if ($errors->any())
+    @if ($errors->any() && ! old('_modal_id'))
         <div class="alert alert-danger">
             <strong>Проверьте данные.</strong>
             <ul class="mb-0">
@@ -155,22 +159,33 @@
                     <div class="row filter-panel">
                         <div class="col-md-3">
                             <div class="form-group">
-                                <label for="company">Компания</label>
-                                <select id="company" name="company" class="form-control">
+                                <label for="cash_register_id">Касса</label>
+                                <select id="cash_register_id" name="cash_register_id" class="form-control">
                                     <option value="">Все</option>
-                                    @foreach ($companies as $company)
-                                        <option value="{{ $company }}" @selected(($filters['company'] ?? '') === $company)>{{ $company }}</option>
+                                    @foreach ($cashRegisters as $cashRegister)
+                                        <option value="{{ $cashRegister->id }}" @selected((int) ($filters['cash_register_id'] ?? 0) === $cashRegister->id)>{{ $cashRegister->name }}</option>
                                     @endforeach
                                 </select>
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
-                                <label for="cash_flow">ДДС</label>
-                                <select id="cash_flow" name="cash_flow" class="form-control">
+                                <label for="cash_company_id">Компания</label>
+                                <select id="cash_company_id" name="cash_company_id" class="form-control">
+                                    <option value="">Все</option>
+                                    @foreach ($companies as $company)
+                                        <option value="{{ $company->id }}" @selected((int) ($filters['cash_company_id'] ?? 0) === $company->id)>{{ $company->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="cash_flow_category_id">ДДС</label>
+                                <select id="cash_flow_category_id" name="cash_flow_category_id" class="form-control">
                                     <option value="">Все</option>
                                     @foreach ($cashFlows as $cashFlow)
-                                        <option value="{{ $cashFlow }}" @selected(($filters['cash_flow'] ?? '') === $cashFlow)>{{ $cashFlow }}</option>
+                                        <option value="{{ $cashFlow->id }}" @selected((int) ($filters['cash_flow_category_id'] ?? 0) === $cashFlow->id)>{{ $cashFlow->name }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -220,11 +235,14 @@
         <div class="card-header">
             <h3 class="card-title">Операции кассы: {{ $totalCount }}</h3>
             <div class="card-tools">
+                <a href="{{ route('cash-directories.index') }}" class="btn btn-default btn-sm mr-2">
+                    <i class="fas fa-book mr-1"></i> Справочники
+                </a>
                 <button type="button" class="btn btn-primary btn-sm mr-2" data-toggle="modal" data-target="#createCashTransactionModal">
                     <i class="fas fa-plus mr-1"></i> Новая запись
                 </button>
                 <form method="GET" action="{{ route('cash-transactions.index') }}" class="d-inline-block">
-                    @foreach (request()->only(['date_from', 'date_to', 'company', 'cash_flow', 'has_supporting_document', 'direction', 'filter_expanded']) as $name => $value)
+                    @foreach (request()->only(['cash_register_id', 'date_from', 'date_to', 'cash_company_id', 'cash_flow_category_id', 'has_supporting_document', 'direction', 'filter_expanded']) as $name => $value)
                         <input type="hidden" name="{{ $name }}" value="{{ $value }}">
                     @endforeach
                     <select name="per_page" class="form-control form-control-sm d-inline-block w-auto js-per-page-select" aria-label="На странице">
@@ -244,6 +262,7 @@
                         <th class="text-right">Сумма поступления KZT</th>
                         <th class="text-right">Сумма расхода KZT</th>
                         <th class="text-right">Остаток KZT</th>
+                        <th>Касса</th>
                         <th>Компания</th>
                         <th>ДДС</th>
                         <th>Наличие СЗ</th>
@@ -258,8 +277,9 @@
                             <td class="text-right text-success">{{ $transaction->income_amount > 0 ? $money($transaction->income_amount) : '' }}</td>
                             <td class="text-right text-danger">{{ $transaction->expense_amount > 0 ? $money($transaction->expense_amount) : '' }}</td>
                             <td class="text-right font-weight-bold">{{ $money($balances[$transaction->id] ?? $openingBalance) }}</td>
-                            <td>{{ $transaction->company ?: '-' }}</td>
-                            <td>{{ $transaction->cash_flow ?: '-' }}</td>
+                            <td>{{ $transaction->cashRegister?->name ?: '-' }}</td>
+                            <td>{{ $transaction->cashCompany?->name ?: ($transaction->company ?: '-') }}</td>
+                            <td>{{ $transaction->cashFlowCategory?->name ?: ($transaction->cash_flow ?: '-') }}</td>
                             <td>
                                 @if (is_null($transaction->has_supporting_document))
                                     -
@@ -276,11 +296,12 @@
                                     data-toggle="modal"
                                     data-target="#editCashTransactionModal"
                                     data-action="{{ route('cash-transactions.update', $transaction) }}"
+                                    data-cash-register-id="{{ $transaction->cash_register_id }}"
                                     data-date="{{ $transaction->transaction_date->format('Y-m-d') }}"
                                     data-income="{{ $transaction->income_amount }}"
                                     data-expense="{{ $transaction->expense_amount }}"
-                                    data-company="{{ $transaction->company }}"
-                                    data-cash-flow="{{ $transaction->cash_flow }}"
+                                    data-company-id="{{ $transaction->cash_company_id }}"
+                                    data-cash-flow-category-id="{{ $transaction->cash_flow_category_id }}"
                                     data-has-document="{{ is_null($transaction->has_supporting_document) ? '' : (int) $transaction->has_supporting_document }}"
                                 >
                                     <i class="fas fa-edit"></i>
@@ -288,7 +309,7 @@
                                 <form method="POST" action="{{ route('cash-transactions.destroy', $transaction) }}" class="d-inline" onsubmit="return confirm('Удалить запись кассы?')">
                                     @csrf
                                     @method('DELETE')
-                                    @foreach (request()->only(['date_from', 'date_to', 'company', 'cash_flow', 'has_supporting_document', 'direction', 'per_page', 'page']) as $name => $value)
+                                    @foreach (request()->only(['cash_register_id', 'date_from', 'date_to', 'cash_company_id', 'cash_flow_category_id', 'has_supporting_document', 'direction', 'per_page', 'page']) as $name => $value)
                                         <input type="hidden" name="{{ $name }}" value="{{ $value }}">
                                     @endforeach
                                     <button type="submit" class="btn btn-sm btn-outline-danger">
@@ -299,7 +320,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="text-center text-muted py-4">Записей пока нет</td>
+                            <td colspan="10" class="text-center text-muted py-4">Записей пока нет</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -319,6 +340,9 @@
         'method' => 'POST',
         'transaction' => null,
         'defaultTransactionDate' => now()->toDateString(),
+        'cashRegisters' => $cashRegisters,
+        'companies' => $companies,
+        'cashFlows' => $cashFlows,
     ])
 
     @include('cash-transactions.partials.form-modal', [
@@ -327,6 +351,9 @@
         'action' => '#',
         'method' => 'PUT',
         'transaction' => null,
+        'cashRegisters' => $cashRegisters,
+        'companies' => $companies,
+        'cashFlows' => $cashFlows,
     ])
 
 @endsection
@@ -406,24 +433,50 @@
                 var modal = $('#editCashTransactionModal');
 
                 modal.find('form').attr('action', button.attr('data-action'));
+                modal.find('[name="_form_action"]').val(button.attr('data-action'));
+                modal.find('[name="cash_register_id"]').val(button.attr('data-cash-register-id'));
                 modal.find('[name="transaction_date"]').val(button.attr('data-date'));
                 modal.find('[name="income_amount"]').val(button.attr('data-income'));
                 modal.find('[name="expense_amount"]').val(button.attr('data-expense'));
-                modal.find('[name="company"]').val(button.attr('data-company'));
-                modal.find('[name="cash_flow"]').val(button.attr('data-cash-flow'));
+                modal.find('[name="cash_company_id"]').val(button.attr('data-company-id'));
+                modal.find('[name="cash_flow_category_id"]').val(button.attr('data-cash-flow-category-id'));
                 modal.find('[name="has_supporting_document"]').val(button.attr('data-has-document'));
             });
 
             $('#createCashTransactionModal').on('show.bs.modal', function () {
                 var modal = $(this);
 
+                if (modal.attr('data-has-errors') === '1') {
+                    return;
+                }
+
+                modal.find('[name="cash_register_id"]').val('{{ request('cash_register_id') ?: $cashRegisters->first()?->id }}');
                 modal.find('[name="transaction_date"]').val('{{ now()->toDateString() }}');
                 modal.find('[name="income_amount"]').val('');
                 modal.find('[name="expense_amount"]').val('');
-                modal.find('[name="company"]').val('');
-                modal.find('[name="cash_flow"]').val('');
+                modal.find('[name="cash_company_id"]').val('');
+                modal.find('[name="cash_flow_category_id"]').val('');
                 modal.find('[name="has_supporting_document"]').val('');
             });
+
+            $('.modal').on('hidden.bs.modal', function () {
+                var modal = $(this);
+
+                if (modal.attr('data-has-errors') !== '1') {
+                    return;
+                }
+
+                modal.attr('data-has-errors', '0');
+                modal.find('.alert-danger').remove();
+                modal.find('.is-invalid').removeClass('is-invalid');
+                modal.find('.invalid-feedback').remove();
+            });
+
+            var errorModalId = @json(old('_modal_id'));
+
+            if (errorModalId) {
+                $('#' + errorModalId).modal('show');
+            }
 
             var toast = $('.cash-success-toast');
 

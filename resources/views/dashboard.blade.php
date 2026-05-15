@@ -1,7 +1,7 @@
 @extends('layouts.adminlte')
 
-@section('title', 'Панель | ' . config('app.name'))
-@section('page-title', 'Панель')
+@section('title', 'Главная | ' . config('app.name'))
+@section('page-title', 'Главная')
 
 @section('content')
     <div class="row">

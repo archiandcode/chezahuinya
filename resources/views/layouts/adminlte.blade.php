@@ -9,6 +9,63 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.4/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
     <style>
+        html {
+            font-size: 90%;
+        }
+
+        body {
+            line-height: 1.35;
+        }
+
+        .content-header {
+            padding: .65rem .5rem;
+        }
+
+        .content-header h1 {
+            font-size: 1.45rem;
+        }
+
+        .content {
+            font-size: .95rem;
+        }
+
+        .card-header,
+        .card-body,
+        .card-footer {
+            padding: .75rem;
+        }
+
+        .table th,
+        .table td {
+            padding: .55rem .65rem;
+        }
+
+        .form-control {
+            height: calc(2rem + 2px);
+            padding: .25rem .5rem;
+            font-size: .95rem;
+        }
+
+        .btn {
+            padding: .3rem .6rem;
+            font-size: .95rem;
+        }
+
+        .btn-sm,
+        .btn-group-sm > .btn {
+            padding: .2rem .45rem;
+            font-size: .85rem;
+        }
+
+        .main-sidebar .nav-link {
+            padding: .45rem .75rem;
+        }
+
+        .nav-sidebar .nav-header {
+            padding: .45rem .75rem .25rem;
+            font-size: .75rem;
+        }
+
         .js-filter-header {
             cursor: pointer;
         }
@@ -192,20 +249,71 @@
                 </div>
             </div>
 
+            @php
+                try {
+                    $sidebarCashRegisters = \App\Models\CashRegister::query()
+                        ->where('is_active', true)
+                        ->orderBy('name')
+                        ->get();
+                } catch (\Throwable) {
+                    $sidebarCashRegisters = collect();
+                }
+
+                $cashSectionIsOpen = request()->routeIs('cash-transactions.*')
+                    || request()->routeIs('cash-directories.*')
+                    || request()->routeIs('cash-registers.*')
+                    || request()->routeIs('cash-companies.*')
+                    || request()->routeIs('cash-flow-categories.*');
+            @endphp
+
             <nav class="mt-2">
                 <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu">
+                    <li class="nav-header">ПАНЕЛЬ РАЗДЕЛОВ</li>
                     <li class="nav-item">
                         <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
                             <i class="nav-icon fas fa-tachometer-alt"></i>
                             <p>Главная</p>
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a href="{{ route('cash-transactions.index') }}" class="nav-link {{ request()->routeIs('cash-transactions.*') ? 'active' : '' }}">
-                            <i class="nav-icon fas fa-cash-register"></i>
-                            <p>Кассы</p>
+                    <li class="nav-item {{ $cashSectionIsOpen ? 'menu-open' : '' }}">
+                        <a href="#" class="nav-link {{ $cashSectionIsOpen ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-folder"></i>
+                            <p>
+                                Касса
+                                <i class="right fas fa-angle-left"></i>
+                            </p>
                         </a>
+                        <ul class="nav nav-treeview">
+                            @forelse ($sidebarCashRegisters as $cashRegister)
+                                <li class="nav-item">
+                                    <a href="{{ route('cash-transactions.index', ['cash_register_id' => $cashRegister->id]) }}" class="nav-link {{ request()->routeIs('cash-transactions.*') && (int) request('cash_register_id') === $cashRegister->id ? 'active' : '' }}">
+                                        <i class="far fa-file nav-icon"></i>
+                                        <p>{{ $cashRegister->name }}</p>
+                                    </a>
+                                </li>
+                            @empty
+                                <li class="nav-item">
+                                    <a href="{{ route('cash-transactions.index') }}" class="nav-link {{ request()->routeIs('cash-transactions.*') ? 'active' : '' }}">
+                                        <i class="far fa-file nav-icon"></i>
+                                        <p>Кассы</p>
+                                    </a>
+                                </li>
+                            @endforelse
+                            <li class="nav-item">
+                                <a href="{{ route('cash-transactions.index') }}" class="nav-link {{ request()->routeIs('cash-transactions.*') && ! request('cash_register_id') ? 'active' : '' }}">
+                                    <i class="far fa-file-alt nav-icon"></i>
+                                    <p>Отчет ОДДС</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ route('cash-directories.index') }}" class="nav-link {{ request()->routeIs('cash-directories.*') || request()->routeIs('cash-registers.*') || request()->routeIs('cash-companies.*') || request()->routeIs('cash-flow-categories.*') ? 'active' : '' }}">
+                                    <i class="fas fa-cog nav-icon"></i>
+                                    <p>Справочники</p>
+                                </a>
+                            </li>
+                        </ul>
                     </li>
+                    {{--
                     <li class="nav-item">
                         <a href="{{ route('construction-payments.index') }}" class="nav-link {{ request()->routeIs('construction-payments.*') ? 'active' : '' }}">
                             <i class="nav-icon fas fa-hard-hat"></i>
@@ -253,7 +361,7 @@
                             <i class="nav-icon fas fa-building"></i>
                             <p>Компании</p>
                         </a>
-                    </li>
+                    </li> --}}
                 </ul>
             </nav>
         </div>

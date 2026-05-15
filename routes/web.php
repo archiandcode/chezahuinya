@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\BuffetReportController;
 use App\Http\Controllers\CashBalanceController;
+use App\Http\Controllers\CashDirectoryController;
 use App\Http\Controllers\CashTransactionController;
 use App\Http\Controllers\ConstructionPaymentController;
 use App\Http\Controllers\DailyReportController;
@@ -30,6 +31,16 @@ Route::middleware('auth')->group(function () {
 
     Route::resource('cash-transactions', CashTransactionController::class)
         ->only(['index', 'store', 'update', 'destroy']);
+    Route::get('cash-directories', [CashDirectoryController::class, 'index'])->name('cash-directories.index');
+    Route::post('cash-registers', [CashDirectoryController::class, 'storeRegister'])->name('cash-registers.store');
+    Route::put('cash-registers/{cash_register}', [CashDirectoryController::class, 'updateRegister'])->name('cash-registers.update');
+    Route::delete('cash-registers/{cash_register}', [CashDirectoryController::class, 'destroyRegister'])->name('cash-registers.destroy');
+    Route::post('cash-companies', [CashDirectoryController::class, 'storeCompany'])->name('cash-companies.store');
+    Route::put('cash-companies/{cash_company}', [CashDirectoryController::class, 'updateCompany'])->name('cash-companies.update');
+    Route::delete('cash-companies/{cash_company}', [CashDirectoryController::class, 'destroyCompany'])->name('cash-companies.destroy');
+    Route::post('cash-flow-categories', [CashDirectoryController::class, 'storeCashFlow'])->name('cash-flow-categories.store');
+    Route::put('cash-flow-categories/{cash_flow_category}', [CashDirectoryController::class, 'updateCashFlow'])->name('cash-flow-categories.update');
+    Route::delete('cash-flow-categories/{cash_flow_category}', [CashDirectoryController::class, 'destroyCashFlow'])->name('cash-flow-categories.destroy');
     Route::resource('construction-payments', ConstructionPaymentController::class)
         ->only(['index', 'store', 'update', 'destroy']);
     Route::resource('daily-reports', DailyReportController::class)
