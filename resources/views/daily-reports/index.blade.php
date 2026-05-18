@@ -279,6 +279,56 @@
 
     <div class="card">
         <div class="card-header">
+            <h3 class="card-title">Свод ежедневного отчета</h3>
+        </div>
+        <div class="card-body table-responsive p-0">
+            <table class="table table-sm table-bordered text-nowrap mb-0 daily-report-matrix">
+                <thead class="thead-light">
+                    <tr>
+                        <th style="min-width: 220px;">Тип операции</th>
+                        @foreach ($matrixCompanies as $company)
+                            <th class="text-right">{{ $company->short_name ?: $company->name }}</th>
+                        @endforeach
+                        <th class="text-right">Итого</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($matrixTypes->groupBy('direction') as $direction => $groupedTypes)
+                        <tr class="bg-light">
+                            <td class="font-weight-bold">{{ $directionLabels[$direction] ?? $direction }}</td>
+                            @foreach ($matrixCompanies as $company)
+                                <td></td>
+                            @endforeach
+                            <td></td>
+                        </tr>
+                        @foreach ($groupedTypes as $type)
+                            @php
+                                $rowTotal = 0;
+                            @endphp
+                            <tr>
+                                <td>{{ $type->name }}</td>
+                                @foreach ($matrixCompanies as $company)
+                                    @php
+                                        $amount = (float) ($matrixAmounts[$type->id . '_' . $company->id] ?? 0);
+                                        $rowTotal += $amount;
+                                    @endphp
+                                    <td class="text-right">{{ $amount ? $money($amount) : '-' }}</td>
+                                @endforeach
+                                <td class="text-right font-weight-bold">{{ $rowTotal ? $money($rowTotal) : '-' }}</td>
+                            </tr>
+                        @endforeach
+                    @empty
+                        <tr>
+                            <td colspan="{{ $matrixCompanies->count() + 2 }}" class="text-center text-muted py-4">Нет типов отчета</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
             <h3 class="card-title">Записи ежедневного отчета: {{ $totalCount }}</h3>
             <div class="card-tools">
                 <button type="button" class="btn btn-primary btn-sm mr-2" data-toggle="modal" data-target="#createDailyReportModal">
@@ -378,7 +428,7 @@
         'accounts' => $accounts,
         'types' => $types,
         'directionLabels' => $directionLabels,
-        'defaultReportDate' => now()->toDateString(),
+        'defaultReportDate' => $defaultReportDate,
     ])
 
     @include('daily-reports.partials.form-modal', [
@@ -516,7 +566,7 @@
             $('#createDailyReportModal').on('show.bs.modal', function () {
                 var modal = $(this);
 
-                modal.find('[name="report_date"]').val('{{ now()->toDateString() }}');
+                modal.find('[name="report_date"]').val('{{ $defaultReportDate }}');
                 modal.find('[name="report_company_id"]').val('');
                 modal.find('[name="report_company_account_id"]').val('');
                 modal.find('[name="daily_report_type_id"]').val('');

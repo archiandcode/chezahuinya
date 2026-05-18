@@ -277,6 +277,14 @@
                 $constructionSectionIsOpen = request()->routeIs('construction-payments.*')
                     || request()->routeIs('construction-directories.*')
                     || request()->routeIs('construction-sections.*');
+                $dailyReportsSectionIsOpen = request()->routeIs('daily-reports.*');
+                $weeklyReportsSectionIsOpen = request()->routeIs('debt-credit-reports.*')
+                    || request()->routeIs('cash-balances.*')
+                    || request()->routeIs('rap-reports.*')
+                    || request()->routeIs('buffet-reports.*')
+                    || request()->routeIs('trading-stock-balances.*');
+                $otherSectionIsOpen = request()->routeIs('report-companies.*')
+                    || request()->routeIs('report-company-accounts.*');
             @endphp
 
             <nav class="mt-2">
@@ -349,48 +357,86 @@
                     </li>
                     --}}
                     {{--
-                    <li class="nav-item">
-                        <a href="{{ route('daily-reports.index') }}" class="nav-link {{ request()->routeIs('daily-reports.*') ? 'active' : '' }}">
-                            <i class="nav-icon fas fa-clipboard-list"></i>
-                            <p>Ежедневные отчеты</p>
+                    <li class="nav-item {{ $dailyReportsSectionIsOpen ? 'menu-open' : '' }}">
+                        <a href="#" class="nav-link {{ $dailyReportsSectionIsOpen ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-folder"></i>
+                            <p>
+                                Ежедневные отчеты
+                                <i class="right fas fa-angle-left"></i>
+                            </p>
                         </a>
+                        <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                <a href="{{ route('daily-reports.index') }}" class="nav-link {{ request()->routeIs('daily-reports.*') ? 'active' : '' }}">
+                                    <i class="far fa-file nav-icon"></i>
+                                    <p>Ежедневный отчет</p>
+                                </a>
+                            </li>
+                        </ul>
                     </li>
-                    <li class="nav-item">
-                        <a href="{{ route('cash-balances.index') }}" class="nav-link {{ request()->routeIs('cash-balances.*') ? 'active' : '' }}">
-                            <i class="nav-icon fas fa-wallet"></i>
-                            <p>Остатки ДС</p>
+                    --}}
+                    {{--
+                    <li class="nav-item {{ $weeklyReportsSectionIsOpen ? 'menu-open' : '' }}">
+                        <a href="#" class="nav-link {{ $weeklyReportsSectionIsOpen ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-folder"></i>
+                            <p>
+                                Еженедельные отчеты
+                                <i class="right fas fa-angle-left"></i>
+                            </p>
                         </a>
+                        <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                <a href="{{ route('debt-credit-reports.index') }}" class="nav-link {{ request()->routeIs('debt-credit-reports.*') ? 'active' : '' }}">
+                                    <i class="far fa-file nav-icon"></i>
+                                    <p>Отчет Дт и Кт</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ route('cash-balances.index') }}" class="nav-link {{ request()->routeIs('cash-balances.*') ? 'active' : '' }}">
+                                    <i class="far fa-file nav-icon"></i>
+                                    <p>Отчет остатков ДС время</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ route('rap-reports.index') }}" class="nav-link {{ request()->routeIs('rap-reports.*') ? 'active' : '' }}">
+                                    <i class="far fa-file nav-icon"></i>
+                                    <p>Отчет RAP</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ route('buffet-reports.index') }}" class="nav-link {{ request()->routeIs('buffet-reports.*') ? 'active' : '' }}">
+                                    <i class="far fa-file nav-icon"></i>
+                                    <p>Отчет Буфет</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ route('trading-stock-balances.index') }}" class="nav-link {{ request()->routeIs('trading-stock-balances.*') ? 'active' : '' }}">
+                                    <i class="far fa-file nav-icon"></i>
+                                    <p>Отчет остатки по товарам</p>
+                                </a>
+                            </li>
+                        </ul>
                     </li>
-                    <li class="nav-item">
-                        <a href="{{ route('trading-stock-balances.index') }}" class="nav-link {{ request()->routeIs('trading-stock-balances.*') ? 'active' : '' }}">
-                            <i class="nav-icon fas fa-boxes"></i>
-                            <p>Остатки по торговым</p>
+                    --}}
+                    {{--
+                    <li class="nav-item {{ $otherSectionIsOpen ? 'menu-open' : '' }}">
+                        <a href="#" class="nav-link {{ $otherSectionIsOpen ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-folder"></i>
+                            <p>
+                                Прочие
+                                <i class="right fas fa-angle-left"></i>
+                            </p>
                         </a>
+                        <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                <a href="{{ route('report-companies.index') }}" class="nav-link {{ request()->routeIs('report-companies.*') || request()->routeIs('report-company-accounts.*') ? 'active' : '' }}">
+                                    <i class="far fa-file nav-icon"></i>
+                                    <p>Компании</p>
+                                </a>
+                            </li>
+                        </ul>
                     </li>
-                    <li class="nav-item">
-                        <a href="{{ route('rap-reports.index') }}" class="nav-link {{ request()->routeIs('rap-reports.*') ? 'active' : '' }}">
-                            <i class="nav-icon fas fa-file-invoice-dollar"></i>
-                            <p>Отчет RAP</p>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{{ route('debt-credit-reports.index') }}" class="nav-link {{ request()->routeIs('debt-credit-reports.*') ? 'active' : '' }}">
-                            <i class="nav-icon fas fa-balance-scale"></i>
-                            <p>Дт и Кт</p>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{{ route('buffet-reports.index') }}" class="nav-link {{ request()->routeIs('buffet-reports.*') ? 'active' : '' }}">
-                            <i class="nav-icon fas fa-utensils"></i>
-                            <p>Буфет</p>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{{ route('report-companies.index') }}" class="nav-link {{ request()->routeIs('report-companies.*') || request()->routeIs('report-company-accounts.*') ? 'active' : '' }}">
-                            <i class="nav-icon fas fa-building"></i>
-                            <p>Компании</p>
-                        </a>
-                    </li> --}}
+                    --}}
                 </ul>
             </nav>
         </div>

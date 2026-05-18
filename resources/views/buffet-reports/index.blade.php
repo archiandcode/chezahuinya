@@ -159,6 +159,47 @@
 
     <div class="card">
         <div class="card-header">
+            <h3 class="card-title">Свод буфета за {{ $matrixYear }}</h3>
+        </div>
+        <div class="card-body table-responsive p-0">
+            <table class="table table-sm table-bordered text-nowrap mb-0">
+                <thead class="thead-light">
+                    <tr>
+                        <th style="min-width: 220px;">Показатель</th>
+                        @foreach ($matrixPeriods as $period)
+                            <th class="text-right">{{ $period->period_label }}</th>
+                        @endforeach
+                        <th class="text-right">Итого</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($matrixMetrics as $metricValue => $metricLabel)
+                        @php
+                            $rowTotal = 0;
+                        @endphp
+                        <tr>
+                            <td class="font-weight-bold">{{ $metricLabel }}</td>
+                            @foreach ($matrixPeriods as $period)
+                                @php
+                                    $amount = (float) ($matrixAmounts[$metricValue . '|' . $period->period_label . '|' . $period->period_date?->format('Y-m-d')] ?? 0);
+                                    $rowTotal += $amount;
+                                @endphp
+                                <td class="text-right">{{ $amount ? $money($amount) : '-' }}</td>
+                            @endforeach
+                            <td class="text-right font-weight-bold">{{ $rowTotal ? $money($rowTotal) : '-' }}</td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="{{ $matrixPeriods->count() + 2 }}" class="text-center text-muted py-4">Нет данных за выбранный год</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
             <h3 class="card-title">Записи буфета: {{ $totalCount }}</h3>
             <div class="card-tools">
                 <button type="button" class="btn btn-primary btn-sm mr-2" data-toggle="modal" data-target="#createBuffetModal">
@@ -228,7 +269,7 @@
         'method' => 'POST',
         'filterKeys' => $filterKeys,
         'metrics' => $metrics,
-        'defaultYear' => 2026,
+        'defaultYear' => $defaultYear,
     ])
     @include('buffet-reports.partials.form-modal', [
         'modalId' => 'editBuffetModal',
@@ -270,7 +311,7 @@
             $('#createBuffetModal').on('show.bs.modal', function () {
                 var modal = $(this);
 
-                modal.find('[name="report_year"]').val('2026');
+                modal.find('[name="report_year"]').val('{{ $defaultYear }}');
                 modal.find('[name="period_label"]').val('');
                 modal.find('[name="period_date"]').val('');
                 modal.find('[name="metric"]').val('expense');

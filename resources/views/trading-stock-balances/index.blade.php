@@ -295,7 +295,7 @@
         'action' => route('trading-stock-balances.store'),
         'method' => 'POST',
         'filterKeys' => $filterKeys,
-        'defaultBalanceDate' => '2026-04-09',
+        'defaultBalanceDate' => $defaultBalanceDate,
     ])
 
     @include('trading-stock-balances.partials.form-modal', [
@@ -392,7 +392,7 @@
             $('#createTradingStockBalanceModal').on('show.bs.modal', function () {
                 var modal = $(this);
 
-                modal.find('[name="balance_date"]').val('2026-04-09');
+                modal.find('[name="balance_date"]').val('{{ $defaultBalanceDate }}');
                 modal.find('[name="sort_order"]').val('');
                 modal.find('[name="product_group"]').val('');
                 modal.find('[name="quantity"]').val('');

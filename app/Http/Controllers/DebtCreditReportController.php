@@ -38,6 +38,14 @@ class DebtCreditReportController extends Controller
         $summaryQuery = DebtCreditEntry::query();
         $this->applyFilters($summaryQuery, $filters);
 
+        $reportQuery = DebtCreditEntry::query()
+            ->orderByDesc('report_date')
+            ->orderBy('section')
+            ->orderBy('sort_order')
+            ->orderBy('id');
+        $this->applyFilters($reportQuery, $filters);
+        $reportEntries = $reportQuery->get();
+
         return view('debt-credit-reports.index', [
             'entries' => $entries,
             'filters' => $filters,
@@ -58,6 +66,8 @@ class DebtCreditReportController extends Controller
                 ->distinct()
                 ->orderBy('company')
                 ->pluck('company'),
+            'reportEntriesBySection' => $reportEntries->groupBy('section'),
+            'defaultReportDate' => DebtCreditEntry::query()->max('report_date') ?? now()->toDateString(),
         ]);
     }
 

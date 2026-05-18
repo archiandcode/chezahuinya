@@ -147,6 +147,61 @@
 
     <div class="card">
         <div class="card-header">
+            <h3 class="card-title">Свод Дт и Кт по группам</h3>
+        </div>
+        <div class="card-body p-0">
+            @forelse ($reportEntriesBySection as $section => $sectionEntries)
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered text-nowrap mb-0">
+                        <thead class="thead-light">
+                            <tr>
+                                <th colspan="5">{{ $sections[$section] ?? $section }}</th>
+                            </tr>
+                            <tr>
+                                <th style="width: 70px;">№</th>
+                                <th>Группа / контрагент</th>
+                                <th class="text-right">Сумма</th>
+                                <th>Компания</th>
+                                <th>Примечание</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($sectionEntries->groupBy('group_name') as $groupName => $groupEntries)
+                                <tr class="bg-light">
+                                    <td></td>
+                                    <td class="font-weight-bold">{{ $groupName ?: 'Без группы' }}</td>
+                                    <td class="text-right font-weight-bold">{{ $money($groupEntries->sum('amount')) }}</td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+                                @foreach ($groupEntries as $entry)
+                                    <tr>
+                                        <td>{{ $entry->sort_order }}</td>
+                                        <td>{{ $entry->counterparty }}</td>
+                                        <td class="text-right">{{ $money($entry->amount) }}</td>
+                                        <td>{{ $entry->company ?: '-' }}</td>
+                                        <td class="text-wrap" style="min-width: 240px;">{{ $entry->note ?: '-' }}</td>
+                                    </tr>
+                                @endforeach
+                            @endforeach
+                            <tr>
+                                <td></td>
+                                <td class="font-weight-bold">Итого</td>
+                                <td class="text-right font-weight-bold">{{ $money($sectionEntries->sum('amount')) }}</td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            @empty
+                <div class="text-center text-muted py-4">Нет данных по фильтру</div>
+            @endforelse
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
             <h3 class="card-title">Записи Дт и Кт: {{ $totalCount }}</h3>
             <div class="card-tools">
                 <button type="button" class="btn btn-primary btn-sm mr-2" data-toggle="modal" data-target="#createDebtCreditModal">
@@ -222,7 +277,7 @@
         'method' => 'POST',
         'filterKeys' => $filterKeys,
         'sections' => $sections,
-        'defaultReportDate' => '2026-04-30',
+        'defaultReportDate' => $defaultReportDate,
     ])
     @include('debt-credit-reports.partials.form-modal', [
         'modalId' => 'editDebtCreditModal',
@@ -266,7 +321,7 @@
             $('#createDebtCreditModal').on('show.bs.modal', function () {
                 var modal = $(this);
 
-                modal.find('[name="report_date"]').val('2026-04-30');
+                modal.find('[name="report_date"]').val('{{ $defaultReportDate }}');
                 modal.find('[name="section"]').val('creditor');
                 modal.find('[name="sort_order"]').val('');
                 modal.find('[name="group_name"]').val('');

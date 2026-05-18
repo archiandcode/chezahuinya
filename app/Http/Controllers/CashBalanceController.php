@@ -49,6 +49,7 @@ class CashBalanceController extends Controller
                 ->distinct()
                 ->orderBy('company')
                 ->pluck('company'),
+            'defaultBalanceDate' => CashBalance::query()->max('balance_date') ?? now()->toDateString(),
         ]);
     }
 

@@ -61,6 +61,7 @@ class RapReportController extends Controller
                 ->distinct()
                 ->orderBy('sale_month')
                 ->pluck('sale_month'),
+            'defaultReportDate' => RapReportEntry::query()->max('report_date') ?? now()->toDateString(),
         ]);
     }
 

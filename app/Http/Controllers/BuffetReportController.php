@@ -37,16 +37,39 @@ class BuffetReportController extends Controller
         $summaryQuery = BuffetReportEntry::query();
         $this->applyFilters($summaryQuery, $filters);
 
+        $metrics = $this->metrics();
+        $defaultYear = (int) (BuffetReportEntry::query()->max('report_year') ?? now()->year);
+        $matrixYear = (int) ($filters['report_year'] ?? $defaultYear);
+        $matrixEntries = BuffetReportEntry::query()
+            ->where('report_year', $matrixYear)
+            ->orderBy('sort_order')
+            ->orderBy('period_label')
+            ->get();
+        $matrixPeriods = $matrixEntries
+            ->unique(fn (BuffetReportEntry $entry): string => $entry->period_label.'|'.$entry->period_date?->format('Y-m-d'))
+            ->values();
+        $matrixMetrics = collect($metrics)
+            ->filter(fn (string $label, string $metric): bool => $matrixEntries->contains('metric', $metric))
+            ->all();
+        $matrixAmounts = $matrixEntries
+            ->groupBy(fn (BuffetReportEntry $entry): string => $entry->metric.'|'.$entry->period_label.'|'.$entry->period_date?->format('Y-m-d'))
+            ->map(fn ($entries): float => (float) $entries->sum('amount'));
+
         return view('buffet-reports.index', [
             'entries' => $entries,
             'filters' => $filters,
-            'metrics' => BuffetReportEntry::METRICS,
+            'metrics' => $metrics,
             'totalCount' => (clone $summaryQuery)->count(),
             'totalAmount' => (clone $summaryQuery)->sum('amount'),
             'incomeAmount' => $this->sumMetric(clone $summaryQuery, 'income'),
             'expenseAmount' => $this->sumMetric(clone $summaryQuery, 'expense'),
             'profitLossAmount' => $this->sumMetric(clone $summaryQuery, 'profit_loss'),
             'years' => BuffetReportEntry::query()->distinct()->orderByDesc('report_year')->pluck('report_year'),
+            'defaultYear' => $defaultYear,
+            'matrixYear' => $matrixYear,
+            'matrixPeriods' => $matrixPeriods,
+            'matrixMetrics' => $matrixMetrics,
+            'matrixAmounts' => $matrixAmounts,
         ]);
     }
 
@@ -103,6 +126,22 @@ class BuffetReportController extends Controller
     private function sumMetric(Builder $query, string $metric): float
     {
         return (float) $query->where('metric', $metric)->sum('amount');
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function metrics(): array
+    {
+        $storedMetrics = BuffetReportEntry::query()
+            ->whereNotNull('metric')
+            ->distinct()
+            ->orderBy('metric')
+            ->pluck('metric')
+            ->mapWithKeys(fn (string $metric): array => [$metric => BuffetReportEntry::METRICS[$metric] ?? $metric])
+            ->all();
+
+        return BuffetReportEntry::METRICS + $storedMetrics;
     }
 
     private function filterKeys(): array

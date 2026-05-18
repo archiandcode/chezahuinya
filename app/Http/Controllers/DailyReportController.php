@@ -45,6 +45,36 @@ class DailyReportController extends Controller
         $income = $this->sumByDirection(clone $summaryQuery, 'income');
         $expense = $this->sumByDirection(clone $summaryQuery, 'expense');
 
+        $matrixCompanies = $companies = ReportCompany::query()
+            ->with('accounts')
+            ->orderBy('category')
+            ->orderBy('name')
+            ->get();
+        $types = DailyReportType::query()
+            ->orderBy('direction')
+            ->orderBy('sort_order')
+            ->get();
+
+        $matrixEntriesQuery = DailyReportEntry::query()->with('type');
+        $this->applyFilters($matrixEntriesQuery, $filters);
+        $matrixEntries = $matrixEntriesQuery->get();
+
+        if ($filters['report_company_id'] ?? null) {
+            $matrixCompanies = $matrixCompanies->where('id', (int) $filters['report_company_id'])->values();
+        }
+
+        $matrixTypes = $types;
+        if ($filters['daily_report_type_id'] ?? null) {
+            $matrixTypes = $matrixTypes->where('id', (int) $filters['daily_report_type_id'])->values();
+        }
+        if ($filters['direction'] ?? null) {
+            $matrixTypes = $matrixTypes->where('direction', $filters['direction'])->values();
+        }
+
+        $matrixAmounts = $matrixEntries
+            ->groupBy(fn (DailyReportEntry $entry): string => $entry->daily_report_type_id.'_'.$entry->report_company_id)
+            ->map(fn ($entries): float => (float) $entries->sum('amount'));
+
         return view('daily-reports.index', [
             'entries' => $entries,
             'filters' => $filters,
@@ -55,19 +85,16 @@ class DailyReportController extends Controller
             'closingAmount' => $opening + $income - $expense,
             'companiesCount' => ReportCompany::query()->count(),
             'accountsCount' => ReportCompanyAccount::query()->count(),
-            'companies' => ReportCompany::query()
-                ->with('accounts')
-                ->orderBy('category')
-                ->orderBy('name')
-                ->get(),
+            'companies' => $companies,
             'accounts' => ReportCompanyAccount::query()
                 ->with('company')
                 ->orderBy('account_number')
                 ->get(),
-            'types' => DailyReportType::query()
-                ->orderBy('direction')
-                ->orderBy('sort_order')
-                ->get(),
+            'types' => $types,
+            'matrixCompanies' => $matrixCompanies,
+            'matrixTypes' => $matrixTypes,
+            'matrixAmounts' => $matrixAmounts,
+            'defaultReportDate' => DailyReportEntry::query()->max('report_date') ?? now()->toDateString(),
         ]);
     }
 

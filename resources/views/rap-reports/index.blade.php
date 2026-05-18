@@ -334,7 +334,7 @@
         'method' => 'POST',
         'filterKeys' => $filterKeys,
         'sections' => $sections,
-        'defaultReportDate' => '2026-04-29',
+        'defaultReportDate' => $defaultReportDate,
     ])
 
     @include('rap-reports.partials.form-modal', [
@@ -437,7 +437,7 @@
             $('#createRapReportModal').on('show.bs.modal', function () {
                 var modal = $(this);
 
-                modal.find('[name="report_date"]').val('2026-04-29');
+                modal.find('[name="report_date"]').val('{{ $defaultReportDate }}');
                 modal.find('[name="section"]').val('uninvoiced');
                 modal.find('[name="counterparty"]').val('');
                 modal.find('[name="quantity"]').val('');

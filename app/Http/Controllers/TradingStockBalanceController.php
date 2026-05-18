@@ -51,6 +51,7 @@ class TradingStockBalanceController extends Controller
                 ->distinct()
                 ->orderBy('product_group')
                 ->pluck('product_group'),
+            'defaultBalanceDate' => TradingStockBalance::query()->max('balance_date') ?? now()->toDateString(),
         ]);
     }
 

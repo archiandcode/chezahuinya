@@ -280,7 +280,7 @@
         'action' => route('cash-balances.store'),
         'method' => 'POST',
         'filterKeys' => $filterKeys,
-        'defaultBalanceDate' => '2026-04-30',
+        'defaultBalanceDate' => $defaultBalanceDate,
     ])
 
     @include('cash-balances.partials.form-modal', [
@@ -378,7 +378,7 @@
             $('#createCashBalanceModal').on('show.bs.modal', function () {
                 var modal = $(this);
 
-                modal.find('[name="balance_date"]').val('2026-04-30');
+                modal.find('[name="balance_date"]').val('{{ $defaultBalanceDate }}');
                 modal.find('[name="sort_order"]').val('');
                 modal.find('[name="company"]').val('');
                 modal.find('[name="balance_amount"]').val('');
