@@ -1,23 +1,27 @@
 @extends('layouts.adminlte')
 
-@section('title', 'Кассы | ' . config('app.name'))
-@section('page-title', 'Кассы')
-
 @php
     $money = fn ($value) => number_format((float) $value, 2, '.', ' ');
-    $cashRegisterNames = $cashRegisters->pluck('name', 'id');
     $companyNames = $companies->pluck('name', 'id');
     $cashFlowNames = $cashFlows->pluck('name', 'id');
+    $selectedCashRegister = $cashRegisters->firstWhere('id', (int) ($filters['cash_register_id'] ?? 0));
+    $pageTitle = $selectedCashRegister ? $selectedCashRegister->name : 'Кассы';
+    $resetFilterParameters = array_filter([
+        'cash_register_id' => $filters['cash_register_id'] ?? null,
+        'per_page' => request('per_page'),
+    ], fn ($value) => filled($value));
     $activeFilters = collect([
-        'cash_register_id' => ['label' => 'Касса', 'value' => $cashRegisterNames[(int) ($filters['cash_register_id'] ?? 0)] ?? null],
         'date_from' => ['label' => 'Дата от', 'value' => $filters['date_from'] ?? null],
         'date_to' => ['label' => 'Дата до', 'value' => $filters['date_to'] ?? null],
         'cash_company_id' => ['label' => 'Компания', 'value' => $companyNames[(int) ($filters['cash_company_id'] ?? 0)] ?? null],
         'cash_flow_category_id' => ['label' => 'ДДС', 'value' => $cashFlowNames[(int) ($filters['cash_flow_category_id'] ?? 0)] ?? null],
-        'direction' => ['label' => 'Тип', 'value' => ['income' => 'Поступление', 'expense' => 'Расход'][$filters['direction'] ?? ''] ?? null],
+        'direction' => ['label' => 'Тип операции', 'value' => ['income' => 'Поступление', 'expense' => 'Расход'][$filters['direction'] ?? ''] ?? null],
         'has_supporting_document' => ['label' => 'СЗ', 'value' => ['yes' => 'Есть', 'no' => 'Нет'][$filters['has_supporting_document'] ?? ''] ?? null],
     ])->filter(fn ($filter) => filled($filter['value']));
 @endphp
+
+@section('title', $pageTitle . ' | ' . config('app.name'))
+@section('page-title', $pageTitle)
 
 @section('content')
     @if (session('toast_success'))
@@ -122,6 +126,9 @@
         </div>
         <form method="GET" action="{{ route('cash-transactions.index') }}" id="cashFilters" class="collapse {{ request('filter_expanded') === '1' ? 'show' : '' }}">
             <input type="hidden" name="filter_expanded" value="{{ request('filter_expanded') === '1' ? '1' : '0' }}">
+            @if ($selectedCashRegister)
+                <input type="hidden" name="cash_register_id" value="{{ $selectedCashRegister->id }}">
+            @endif
             @if ($activeFilters->isNotEmpty())
                 <div class="filter-summary">
                     @foreach ($activeFilters as $filter)
@@ -159,17 +166,6 @@
                     <div class="row filter-panel">
                         <div class="col-md-3">
                             <div class="form-group">
-                                <label for="cash_register_id">Касса</label>
-                                <select id="cash_register_id" name="cash_register_id" class="form-control">
-                                    <option value="">Все</option>
-                                    @foreach ($cashRegisters as $cashRegister)
-                                        <option value="{{ $cashRegister->id }}" @selected((int) ($filters['cash_register_id'] ?? 0) === $cashRegister->id)>{{ $cashRegister->name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="form-group">
                                 <label for="cash_company_id">Компания</label>
                                 <select id="cash_company_id" name="cash_company_id" class="form-control">
                                     <option value="">Все</option>
@@ -192,7 +188,7 @@
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
-                                <label for="direction">Тип суммы</label>
+                                <label for="direction">Тип операции</label>
                                 <select id="direction" name="direction" class="form-control">
                                     <option value="">Все</option>
                                     <option value="income" @selected(($filters['direction'] ?? '') === 'income')>Поступление</option>
@@ -213,19 +209,13 @@
                     </div>
                 </div>
 
-                <div class="filter-section">
-                    <div class="row align-items-end filter-panel">
-                        <div class="col-md-12">
-                            <div class="filter-actions">
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-filter mr-1"></i> Применить
-                                </button>
-                                <a href="{{ route('cash-transactions.index', request()->filled('per_page') ? ['per_page' => request('per_page')] : []) }}" class="btn btn-default">
-                                    <i class="fas fa-times mr-1"></i> Сбросить
-                                </a>
-                            </div>
-                        </div>
-                    </div>
+                <div class="filter-footer-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter mr-1"></i> Применить
+                    </button>
+                    <a href="{{ route('cash-transactions.index', $resetFilterParameters) }}" class="btn btn-default">
+                        <i class="fas fa-times mr-1"></i> Сбросить
+                    </a>
                 </div>
             </div>
         </form>
@@ -245,7 +235,7 @@
                     @foreach (request()->only(['cash_register_id', 'date_from', 'date_to', 'cash_company_id', 'cash_flow_category_id', 'has_supporting_document', 'direction', 'filter_expanded']) as $name => $value)
                         <input type="hidden" name="{{ $name }}" value="{{ $value }}">
                     @endforeach
-                    <select name="per_page" class="form-control form-control-sm d-inline-block w-auto js-per-page-select" aria-label="На странице">
+                    <select name="per_page" class="form-control form-control-sm d-inline-block w-auto js-per-page-select cash-per-page-select" aria-label="На странице">
                         @foreach ([10, 25, 50, 100] as $size)
                             <option value="{{ $size }}" @selected((int) ($filters['per_page'] ?? 10) === $size)>{{ $size }}</option>
                         @endforeach
@@ -370,6 +360,19 @@
             margin: 0;
         }
 
+        .filter-footer-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: .5rem;
+            margin-top: .75rem;
+            padding-top: .75rem;
+            border-top: 1px solid #edf1f5;
+        }
+
+        .cash-per-page-select {
+            margin-right: .5rem;
+        }
+
         .cash-success-toast {
             position: fixed;
             top: 1rem;
@@ -403,6 +406,21 @@
             transition: opacity .2s ease, transform .2s ease;
         }
 
+        @media (max-width: 767.98px) {
+            .filter-footer-actions {
+                justify-content: stretch;
+            }
+
+            .filter-footer-actions .btn {
+                flex: 1 1 0;
+            }
+
+            .cash-per-page-select {
+                margin-top: .5rem;
+                margin-right: 0;
+            }
+        }
+
         @keyframes cashSuccessToastTimer {
             from {
                 width: 100%;
@@ -412,6 +430,7 @@
                 width: 0;
             }
         }
+
     </style>
     <script>
         $(function () {

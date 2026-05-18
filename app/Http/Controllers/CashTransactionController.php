@@ -63,7 +63,7 @@ class CashTransactionController extends Controller
         CashTransaction::create($this->validatedData($request));
 
         return redirect()
-            ->route('cash-transactions.index')
+            ->route('cash-transactions.index', $this->filterParameters($request))
             ->with('toast_success', 'Запись кассы добавлена.');
     }
 

@@ -1,11 +1,14 @@
 @extends('layouts.adminlte')
 
-@section('title', 'Стройка | ' . config('app.name'))
-@section('page-title', 'Стройка')
-
 @php
     $money = fn ($value) => number_format((float) $value, 2, '.', ' ');
-    $filterKeys = ['date_from', 'date_to', 'supplier', 'contract', 'payment_source', 'amount_from', 'amount_to', 'per_page', 'page'];
+    $filterKeys = ['construction_section_id', 'date_from', 'date_to', 'supplier', 'contract', 'payment_source', 'amount_from', 'amount_to', 'per_page', 'page'];
+    $selectedSection = $sections->firstWhere('id', (int) ($filters['construction_section_id'] ?? 0));
+    $pageTitle = $selectedSection ? $selectedSection->name : 'Стройка';
+    $resetFilterParameters = array_filter([
+        'construction_section_id' => $filters['construction_section_id'] ?? null,
+        'per_page' => request('per_page'),
+    ], fn ($value) => filled($value));
     $activeFilters = collect([
         'date_from' => ['label' => 'Дата от', 'value' => $filters['date_from'] ?? null],
         'date_to' => ['label' => 'Дата до', 'value' => $filters['date_to'] ?? null],
@@ -16,6 +19,9 @@
         'amount_to' => ['label' => 'Сумма до', 'value' => $filters['amount_to'] ?? null],
     ])->filter(fn ($filter) => filled($filter['value']));
 @endphp
+
+@section('title', $pageTitle . ' | ' . config('app.name'))
+@section('page-title', $pageTitle)
 
 @section('content')
     @if (session('toast_success'))
@@ -120,6 +126,9 @@
         </div>
         <form method="GET" action="{{ route('construction-payments.index') }}" id="constructionFilters" class="collapse {{ request('filter_expanded') === '1' ? 'show' : '' }}">
             <input type="hidden" name="filter_expanded" value="{{ request('filter_expanded') === '1' ? '1' : '0' }}">
+            @if ($selectedSection)
+                <input type="hidden" name="construction_section_id" value="{{ $selectedSection->id }}">
+            @endif
             @if ($activeFilters->isNotEmpty())
                 <div class="filter-summary">
                     @foreach ($activeFilters as $filter)
@@ -194,32 +203,31 @@
                 <div class="filter-section">
                     <div class="filter-section-title">
                         <i class="fas fa-coins text-muted"></i>
-                        Сумма и поиск
+                        Сумма
                     </div>
-                    <div class="row align-items-end filter-panel">
+                    <div class="row filter-panel">
                         <div class="col-md-2">
-                            <div class="form-group mb-md-0">
+                            <div class="form-group">
                                 <label for="amount_from">Сумма от</label>
                                 <input type="number" step="0.01" min="0" id="amount_from" name="amount_from" value="{{ $filters['amount_from'] ?? '' }}" class="form-control construction-payment-amount-input">
                             </div>
                         </div>
                         <div class="col-md-2">
-                            <div class="form-group mb-md-0">
+                            <div class="form-group">
                                 <label for="amount_to">Сумма до</label>
                                 <input type="number" step="0.01" min="0" id="amount_to" name="amount_to" value="{{ $filters['amount_to'] ?? '' }}" class="form-control construction-payment-amount-input">
                             </div>
                         </div>
-                        <div class="col-md-8">
-                            <div class="filter-actions">
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-filter mr-1"></i> Применить
-                                </button>
-                                <a href="{{ route('construction-payments.index', request()->filled('per_page') ? ['per_page' => request('per_page')] : []) }}" class="btn btn-default">
-                                    <i class="fas fa-times mr-1"></i> Сбросить
-                                </a>
-                            </div>
-                        </div>
                     </div>
+                </div>
+
+                <div class="filter-footer-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter mr-1"></i> Применить
+                    </button>
+                    <a href="{{ route('construction-payments.index', $resetFilterParameters) }}" class="btn btn-default">
+                        <i class="fas fa-times mr-1"></i> Сбросить
+                    </a>
                 </div>
             </div>
         </form>
@@ -229,14 +237,17 @@
         <div class="card-header">
             <h3 class="card-title">Платежи стройки: {{ $totalCount }}</h3>
             <div class="card-tools">
+                <a href="{{ route('construction-directories.index') }}" class="btn btn-default btn-sm mr-2">
+                    <i class="fas fa-book mr-1"></i> Справочники
+                </a>
                 <button type="button" class="btn btn-primary btn-sm mr-2" data-toggle="modal" data-target="#createConstructionPaymentModal">
                     <i class="fas fa-plus mr-1"></i> Новая запись
                 </button>
                 <form method="GET" action="{{ route('construction-payments.index') }}" class="d-inline-block">
-                    @foreach (request()->only(['date_from', 'date_to', 'supplier', 'contract', 'payment_source', 'amount_from', 'amount_to', 'filter_expanded']) as $name => $value)
+                    @foreach (request()->only(['construction_section_id', 'date_from', 'date_to', 'supplier', 'contract', 'payment_source', 'amount_from', 'amount_to', 'filter_expanded']) as $name => $value)
                         <input type="hidden" name="{{ $name }}" value="{{ $value }}">
                     @endforeach
-                    <select name="per_page" class="form-control form-control-sm d-inline-block w-auto js-per-page-select" aria-label="На странице">
+                    <select name="per_page" class="form-control form-control-sm d-inline-block w-auto js-per-page-select construction-per-page-select" aria-label="На странице">
                         @foreach ([10, 25, 50, 100] as $size)
                             <option value="{{ $size }}" @selected((int) ($filters['per_page'] ?? 10) === $size)>{{ $size }}</option>
                         @endforeach
@@ -275,6 +286,7 @@
                                     data-toggle="modal"
                                     data-target="#editConstructionPaymentModal"
                                     data-action="{{ route('construction-payments.update', $payment) }}"
+                                    data-construction-section-id="{{ $payment->construction_section_id }}"
                                     data-date="{{ $payment->payment_date->format('Y-m-d') }}"
                                     data-supplier="{{ $payment->supplier }}"
                                     data-amount="{{ $payment->amount }}"
@@ -317,6 +329,7 @@
         'action' => route('construction-payments.store'),
         'method' => 'POST',
         'filterKeys' => $filterKeys,
+        'sections' => $sections,
         'defaultPaymentDate' => now()->toDateString(),
     ])
 
@@ -326,6 +339,7 @@
         'action' => '#',
         'method' => 'PUT',
         'filterKeys' => $filterKeys,
+        'sections' => $sections,
     ])
 @endsection
 
@@ -339,6 +353,19 @@
         .construction-payment-amount-input::-webkit-inner-spin-button {
             -webkit-appearance: none;
             margin: 0;
+        }
+
+        .filter-footer-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: .5rem;
+            margin-top: .75rem;
+            padding-top: .75rem;
+            border-top: 1px solid #edf1f5;
+        }
+
+        .construction-per-page-select {
+            margin-right: .5rem;
         }
 
         .construction-success-toast {
@@ -374,6 +401,21 @@
             transition: opacity .2s ease, transform .2s ease;
         }
 
+        @media (max-width: 767.98px) {
+            .filter-footer-actions {
+                justify-content: stretch;
+            }
+
+            .filter-footer-actions .btn {
+                flex: 1 1 0;
+            }
+
+            .construction-per-page-select {
+                margin-top: .5rem;
+                margin-right: 0;
+            }
+        }
+
         @keyframes constructionSuccessToastTimer {
             from {
                 width: 100%;
@@ -404,6 +446,7 @@
                 var modal = $('#editConstructionPaymentModal');
 
                 modal.find('form').attr('action', button.attr('data-action'));
+                modal.find('[name="construction_section_id"]').val(button.attr('data-construction-section-id'));
                 modal.find('[name="payment_date"]').val(button.attr('data-date'));
                 modal.find('[name="supplier"]').val(button.attr('data-supplier'));
                 modal.find('[name="amount"]').val(button.attr('data-amount'));
@@ -415,6 +458,7 @@
             $('#createConstructionPaymentModal').on('show.bs.modal', function () {
                 var modal = $(this);
 
+                modal.find('[name="construction_section_id"]').val('{{ request('construction_section_id') ?: $sections->first()?->id }}');
                 modal.find('[name="payment_date"]').val('{{ now()->toDateString() }}');
                 modal.find('[name="supplier"]').val('');
                 modal.find('[name="amount"]').val('');

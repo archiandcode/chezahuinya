@@ -259,11 +259,24 @@
                     $sidebarCashRegisters = collect();
                 }
 
+                try {
+                    $sidebarConstructionSections = \App\Models\ConstructionSection::query()
+                        ->where('is_active', true)
+                        ->orderBy('sort_order')
+                        ->orderBy('name')
+                        ->get();
+                } catch (\Throwable) {
+                    $sidebarConstructionSections = collect();
+                }
+
                 $cashSectionIsOpen = request()->routeIs('cash-transactions.*')
                     || request()->routeIs('cash-directories.*')
                     || request()->routeIs('cash-registers.*')
                     || request()->routeIs('cash-companies.*')
                     || request()->routeIs('cash-flow-categories.*');
+                $constructionSectionIsOpen = request()->routeIs('construction-payments.*')
+                    || request()->routeIs('construction-directories.*')
+                    || request()->routeIs('construction-sections.*');
             @endphp
 
             <nav class="mt-2">
@@ -284,27 +297,22 @@
                             </p>
                         </a>
                         <ul class="nav nav-treeview">
-                            @forelse ($sidebarCashRegisters as $cashRegister)
+                            @foreach ($sidebarCashRegisters as $cashRegister)
                                 <li class="nav-item">
                                     <a href="{{ route('cash-transactions.index', ['cash_register_id' => $cashRegister->id]) }}" class="nav-link {{ request()->routeIs('cash-transactions.*') && (int) request('cash_register_id') === $cashRegister->id ? 'active' : '' }}">
                                         <i class="far fa-file nav-icon"></i>
                                         <p>{{ $cashRegister->name }}</p>
                                     </a>
                                 </li>
-                            @empty
+                            @endforeach
+                            @if ($sidebarCashRegisters->isNotEmpty())
                                 <li class="nav-item">
-                                    <a href="{{ route('cash-transactions.index') }}" class="nav-link {{ request()->routeIs('cash-transactions.*') ? 'active' : '' }}">
-                                        <i class="far fa-file nav-icon"></i>
-                                        <p>Кассы</p>
+                                    <a href="{{ route('cash-transactions.index') }}" class="nav-link {{ request()->routeIs('cash-transactions.*') && ! request('cash_register_id') ? 'active' : '' }}">
+                                        <i class="far fa-file-alt nav-icon"></i>
+                                        <p>Отчет ОДДС</p>
                                     </a>
                                 </li>
-                            @endforelse
-                            <li class="nav-item">
-                                <a href="{{ route('cash-transactions.index') }}" class="nav-link {{ request()->routeIs('cash-transactions.*') && ! request('cash_register_id') ? 'active' : '' }}">
-                                    <i class="far fa-file-alt nav-icon"></i>
-                                    <p>Отчет ОДДС</p>
-                                </a>
-                            </li>
+                            @endif
                             <li class="nav-item">
                                 <a href="{{ route('cash-directories.index') }}" class="nav-link {{ request()->routeIs('cash-directories.*') || request()->routeIs('cash-registers.*') || request()->routeIs('cash-companies.*') || request()->routeIs('cash-flow-categories.*') ? 'active' : '' }}">
                                     <i class="fas fa-cog nav-icon"></i>
@@ -313,13 +321,32 @@
                             </li>
                         </ul>
                     </li>
-                    {{--
-                    <li class="nav-item">
-                        <a href="{{ route('construction-payments.index') }}" class="nav-link {{ request()->routeIs('construction-payments.*') ? 'active' : '' }}">
-                            <i class="nav-icon fas fa-hard-hat"></i>
-                            <p>Стройка</p>
+                    <li class="nav-item {{ $constructionSectionIsOpen ? 'menu-open' : '' }}">
+                        <a href="#" class="nav-link {{ $constructionSectionIsOpen ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-folder"></i>
+                            <p>
+                                Стройка
+                                <i class="right fas fa-angle-left"></i>
+                            </p>
                         </a>
+                        <ul class="nav nav-treeview">
+                            @foreach ($sidebarConstructionSections as $constructionSection)
+                                <li class="nav-item">
+                                    <a href="{{ route('construction-payments.index', ['construction_section_id' => $constructionSection->id]) }}" class="nav-link {{ request()->routeIs('construction-payments.*') && (int) request('construction_section_id') === $constructionSection->id ? 'active' : '' }}">
+                                        <i class="far fa-file nav-icon"></i>
+                                        <p>{{ $constructionSection->name }}</p>
+                                    </a>
+                                </li>
+                            @endforeach
+                            <li class="nav-item">
+                                <a href="{{ route('construction-directories.index') }}" class="nav-link {{ request()->routeIs('construction-directories.*') || request()->routeIs('construction-sections.*') ? 'active' : '' }}">
+                                    <i class="fas fa-cog nav-icon"></i>
+                                    <p>Справочники</p>
+                                </a>
+                            </li>
+                        </ul>
                     </li>
+                    {{--
                     <li class="nav-item">
                         <a href="{{ route('daily-reports.index') }}" class="nav-link {{ request()->routeIs('daily-reports.*') ? 'active' : '' }}">
                             <i class="nav-icon fas fa-clipboard-list"></i>

@@ -8,6 +8,7 @@ use App\Models\CashRegister;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class CashDirectoryController extends Controller
@@ -107,10 +108,8 @@ class CashDirectoryController extends Controller
      */
     private function validatedRegisterData(Request $request, ?CashRegister $cashRegister = null): array
     {
-        $ignoreId = $cashRegister?->id;
-
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:255', 'unique:cash_registers,name,'.$ignoreId],
+            'name' => ['required', 'string', 'max:255', Rule::unique('cash_registers', 'name')->ignore($cashRegister)],
             'currency' => ['required', 'string', 'size:3'],
             'opening_balance' => ['required', 'numeric', 'min:-999999999999.99', 'max:999999999999.99'],
             'opening_balance_date' => ['nullable', 'date'],
@@ -129,10 +128,8 @@ class CashDirectoryController extends Controller
      */
     private function validatedCompanyData(Request $request, ?CashCompany $cashCompany = null): array
     {
-        $ignoreId = $cashCompany?->id;
-
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:255', 'unique:cash_companies,name,'.$ignoreId],
+            'name' => ['required', 'string', 'max:255', Rule::unique('cash_companies', 'name')->ignore($cashCompany)],
             'short_name' => ['nullable', 'string', 'max:255'],
             'is_active' => ['nullable', 'boolean'],
         ]);
@@ -148,10 +145,8 @@ class CashDirectoryController extends Controller
      */
     private function validatedCashFlowData(Request $request, ?CashFlowCategory $cashFlowCategory = null): array
     {
-        $ignoreId = $cashFlowCategory?->id;
-
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:255', 'unique:cash_flow_categories,name,'.$ignoreId],
+            'name' => ['required', 'string', 'max:255', Rule::unique('cash_flow_categories', 'name')->ignore($cashFlowCategory)],
             'direction' => ['nullable', 'in:income,expense'],
             'is_active' => ['nullable', 'boolean'],
         ]);

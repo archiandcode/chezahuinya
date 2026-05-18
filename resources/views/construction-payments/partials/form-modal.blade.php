@@ -18,19 +18,29 @@
                 </div>
                 <div class="modal-body">
                     <div class="row">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="{{ $modalId }}_construction_section_id">Раздел</label>
+                                <select id="{{ $modalId }}_construction_section_id" name="construction_section_id" class="form-control" required>
+                                    @foreach ($sections as $section)
+                                        <option value="{{ $section->id }}" @selected((int) old('construction_section_id', request('construction_section_id') ?: $sections->first()?->id) === $section->id)>{{ $section->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
                             <div class="form-group">
                                 <label for="{{ $modalId }}_payment_date">Дата</label>
                                 <input type="date" id="{{ $modalId }}_payment_date" name="payment_date" value="{{ old('payment_date', $defaultPaymentDate ?? '') }}" class="form-control" required>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="form-group">
                                 <label for="{{ $modalId }}_supplier">Поставщик</label>
                                 <input type="text" id="{{ $modalId }}_supplier" name="supplier" value="{{ old('supplier') }}" class="form-control" maxlength="255">
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="form-group">
                                 <label for="{{ $modalId }}_amount">Сумма</label>
                                 <input type="number" step="0.01" min="0.01" id="{{ $modalId }}_amount" name="amount" value="{{ old('amount') }}" class="form-control construction-payment-amount-input" required>

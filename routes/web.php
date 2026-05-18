@@ -5,6 +5,7 @@ use App\Http\Controllers\BuffetReportController;
 use App\Http\Controllers\CashBalanceController;
 use App\Http\Controllers\CashDirectoryController;
 use App\Http\Controllers\CashTransactionController;
+use App\Http\Controllers\ConstructionDirectoryController;
 use App\Http\Controllers\ConstructionPaymentController;
 use App\Http\Controllers\DailyReportController;
 use App\Http\Controllers\DebtCreditReportController;
@@ -43,6 +44,10 @@ Route::middleware('auth')->group(function () {
     Route::delete('cash-flow-categories/{cash_flow_category}', [CashDirectoryController::class, 'destroyCashFlow'])->name('cash-flow-categories.destroy');
     Route::resource('construction-payments', ConstructionPaymentController::class)
         ->only(['index', 'store', 'update', 'destroy']);
+    Route::get('construction-directories', [ConstructionDirectoryController::class, 'index'])->name('construction-directories.index');
+    Route::post('construction-sections', [ConstructionDirectoryController::class, 'storeSection'])->name('construction-sections.store');
+    Route::put('construction-sections/{construction_section}', [ConstructionDirectoryController::class, 'updateSection'])->name('construction-sections.update');
+    Route::delete('construction-sections/{construction_section}', [ConstructionDirectoryController::class, 'destroySection'])->name('construction-sections.destroy');
     Route::resource('daily-reports', DailyReportController::class)
         ->only(['index', 'store', 'update', 'destroy']);
     Route::resource('cash-balances', CashBalanceController::class)

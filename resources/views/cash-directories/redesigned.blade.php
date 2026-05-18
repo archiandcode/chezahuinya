@@ -134,12 +134,14 @@
                                                 class="btn btn-sm btn-outline-primary js-edit-register"
                                                 data-toggle="modal"
                                                 data-target="#editRegisterModal"
-                                                data-action="{{ route('cash-registers.update', $cashRegister) }}"
-                                                data-name="{{ $cashRegister->name }}"
-                                                data-currency="{{ $cashRegister->currency }}"
-                                                data-opening-balance="{{ $cashRegister->opening_balance }}"
-                                                data-opening-balance-date="{{ $cashRegister->opening_balance_date?->format('Y-m-d') }}"
-                                                data-is-active="{{ (int) $cashRegister->is_active }}"
+                                                data-directory="{{ \Illuminate\Support\Js::encode([
+                                                    'action' => route('cash-registers.update', $cashRegister),
+                                                    'name' => $cashRegister->name,
+                                                    'currency' => $cashRegister->currency,
+                                                    'opening_balance' => $cashRegister->opening_balance,
+                                                    'opening_balance_date' => $cashRegister->opening_balance_date?->format('Y-m-d'),
+                                                    'is_active' => (bool) $cashRegister->is_active,
+                                                ]) }}"
                                             >
                                                 <i class="fas fa-edit"></i>
                                             </button>
@@ -199,10 +201,12 @@
                                                 class="btn btn-sm btn-outline-primary js-edit-company"
                                                 data-toggle="modal"
                                                 data-target="#editCompanyModal"
-                                                data-action="{{ route('cash-companies.update', $company) }}"
-                                                data-name="{{ $company->name }}"
-                                                data-short-name="{{ $company->short_name }}"
-                                                data-is-active="{{ (int) $company->is_active }}"
+                                                data-directory="{{ \Illuminate\Support\Js::encode([
+                                                    'action' => route('cash-companies.update', $company),
+                                                    'name' => $company->name,
+                                                    'short_name' => $company->short_name,
+                                                    'is_active' => (bool) $company->is_active,
+                                                ]) }}"
                                             >
                                                 <i class="fas fa-edit"></i>
                                             </button>
@@ -262,10 +266,12 @@
                                                 class="btn btn-sm btn-outline-primary js-edit-flow"
                                                 data-toggle="modal"
                                                 data-target="#editFlowModal"
-                                                data-action="{{ route('cash-flow-categories.update', $cashFlow) }}"
-                                                data-name="{{ $cashFlow->name }}"
-                                                data-direction="{{ $cashFlow->direction }}"
-                                                data-is-active="{{ (int) $cashFlow->is_active }}"
+                                                data-directory="{{ \Illuminate\Support\Js::encode([
+                                                    'action' => route('cash-flow-categories.update', $cashFlow),
+                                                    'name' => $cashFlow->name,
+                                                    'direction' => $cashFlow->direction,
+                                                    'is_active' => (bool) $cashFlow->is_active,
+                                                ]) }}"
                                             >
                                                 <i class="fas fa-edit"></i>
                                             </button>
@@ -437,39 +443,47 @@
                 width: 0;
             }
         }
+
     </style>
     <script>
         $(function () {
+            function directoryData(button) {
+                return button.data('directory') || {};
+            }
+
             $('.js-edit-register').on('click', function () {
                 var button = $(this);
+                var data = directoryData(button);
                 var modal = $('#editRegisterModal');
 
-                modal.find('form').attr('action', button.attr('data-action'));
-                modal.find('[name="name"]').val(button.attr('data-name'));
-                modal.find('[name="currency"]').val(button.attr('data-currency'));
-                modal.find('[name="opening_balance"]').val(button.attr('data-opening-balance'));
-                modal.find('[name="opening_balance_date"]').val(button.attr('data-opening-balance-date'));
-                modal.find('[name="is_active"]').prop('checked', button.attr('data-is-active') === '1');
+                modal.find('form').attr('action', data.action || '#');
+                modal.find('[name="name"]').val(data.name || '');
+                modal.find('[name="currency"]').val(data.currency || 'KZT');
+                modal.find('[name="opening_balance"]').val(data.opening_balance || '0.00');
+                modal.find('[name="opening_balance_date"]').val(data.opening_balance_date || '');
+                modal.find('[name="is_active"]').prop('checked', !! data.is_active);
             });
 
             $('.js-edit-company').on('click', function () {
                 var button = $(this);
+                var data = directoryData(button);
                 var modal = $('#editCompanyModal');
 
-                modal.find('form').attr('action', button.attr('data-action'));
-                modal.find('[name="name"]').val(button.attr('data-name'));
-                modal.find('[name="short_name"]').val(button.attr('data-short-name'));
-                modal.find('[name="is_active"]').prop('checked', button.attr('data-is-active') === '1');
+                modal.find('form').attr('action', data.action || '#');
+                modal.find('[name="name"]').val(data.name || '');
+                modal.find('[name="short_name"]').val(data.short_name || '');
+                modal.find('[name="is_active"]').prop('checked', !! data.is_active);
             });
 
             $('.js-edit-flow').on('click', function () {
                 var button = $(this);
+                var data = directoryData(button);
                 var modal = $('#editFlowModal');
 
-                modal.find('form').attr('action', button.attr('data-action'));
-                modal.find('[name="name"]').val(button.attr('data-name'));
-                modal.find('[name="direction"]').val(button.attr('data-direction'));
-                modal.find('[name="is_active"]').prop('checked', button.attr('data-is-active') === '1');
+                modal.find('form').attr('action', data.action || '#');
+                modal.find('[name="name"]').val(data.name || '');
+                modal.find('[name="direction"]').val(data.direction || '');
+                modal.find('[name="is_active"]').prop('checked', !! data.is_active);
             });
 
             var toast = $('.cash-directory-toast');

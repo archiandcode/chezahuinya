@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ConstructionPayment;
+use App\Models\ConstructionSection;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -13,6 +14,7 @@ class ConstructionPaymentController extends Controller
     public function index(Request $request): View
     {
         $filters = $request->validate([
+            'construction_section_id' => ['nullable', 'integer', 'exists:construction_sections,id'],
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
             'supplier' => ['nullable', 'string', 'max:255'],
@@ -40,6 +42,7 @@ class ConstructionPaymentController extends Controller
         return view('construction-payments.index', [
             'payments' => $payments,
             'filters' => $filters,
+            'sections' => ConstructionSection::query()->where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(),
             'totalAmount' => (clone $summaryQuery)->sum('amount'),
             'totalCount' => (clone $summaryQuery)->count(),
             'suppliersCount' => (clone $summaryQuery)->whereNotNull('supplier')->distinct('supplier')->count('supplier'),
@@ -70,7 +73,7 @@ class ConstructionPaymentController extends Controller
         ConstructionPayment::create($this->validatedData($request));
 
         return redirect()
-            ->route('construction-payments.index')
+            ->route('construction-payments.index', $this->filterParameters($request))
             ->with('toast_success', 'Запись стройки добавлена.');
     }
 
@@ -88,7 +91,7 @@ class ConstructionPaymentController extends Controller
         $constructionPayment->delete();
 
         return redirect()
-            ->route('construction-payments.index', $this->filterParameters($request))
+            ->route('construction-payments.index', $request->only($this->filterKeys()))
             ->with('status', 'Запись стройки удалена.');
     }
 
@@ -99,6 +102,7 @@ class ConstructionPaymentController extends Controller
     private function applyFilters(Builder $query, array $filters): void
     {
         $query
+            ->when($filters['construction_section_id'] ?? null, fn (Builder $query, int $sectionId) => $query->where('construction_section_id', $sectionId))
             ->when($filters['date_from'] ?? null, fn (Builder $query, string $date) => $query->whereDate('payment_date', '>=', $date))
             ->when($filters['date_to'] ?? null, fn (Builder $query, string $date) => $query->whereDate('payment_date', '<=', $date))
             ->when($filters['supplier'] ?? null, fn (Builder $query, string $supplier) => $query->where('supplier', $supplier))
@@ -114,6 +118,7 @@ class ConstructionPaymentController extends Controller
     private function validatedData(Request $request): array
     {
         $data = $request->validate([
+            'construction_section_id' => ['required', 'integer', 'exists:construction_sections,id'],
             'payment_date' => ['required', 'date'],
             'supplier' => ['nullable', 'string', 'max:255'],
             'amount' => ['required', 'numeric', 'min:0.01', 'max:999999999999.99'],
@@ -122,6 +127,7 @@ class ConstructionPaymentController extends Controller
             'payment_source' => ['nullable', 'string', 'max:255'],
         ]);
 
+        $data['construction_section_id'] = $data['construction_section_id'] ?? null;
         $data['supplier'] = $data['supplier'] ?? null;
         $data['contract'] = $data['contract'] ?? null;
         $data['purpose'] = $data['purpose'] ?? null;
@@ -136,6 +142,7 @@ class ConstructionPaymentController extends Controller
     private function filterKeys(): array
     {
         return [
+            'construction_section_id',
             'date_from',
             'date_to',
             'supplier',
@@ -160,11 +167,9 @@ class ConstructionPaymentController extends Controller
 
             if ($request->has($prefixedKey)) {
                 $filters[$key] = $request->input($prefixedKey);
-            } elseif ($request->has($key)) {
-                $filters[$key] = $request->input($key);
             }
         }
 
-        return $filters;
+        return array_filter($filters, fn (mixed $value): bool => filled($value));
     }
 }
