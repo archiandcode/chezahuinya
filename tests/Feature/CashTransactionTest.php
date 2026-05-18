@@ -45,6 +45,16 @@ class CashTransactionTest extends TestCase
             ->assertSee('name="cash_register_id" value="'.$selectedRegister->id.'"', false);
     }
 
+    public function test_cash_transactions_page_does_not_show_directory_button_in_table_header(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get(route('cash-transactions.index'))
+            ->assertOk()
+            ->assertDontSee('href="'.route('cash-directories.index').'" class="btn btn-default btn-sm mr-2"', false);
+    }
+
     public function test_cash_transaction_filters_apply_inside_selected_register(): void
     {
         $user = User::factory()->create();

@@ -47,6 +47,22 @@ class CashDirectoryTest extends TestCase
             ->assertSee($cashFlow->name);
     }
 
+    public function test_cash_flow_directory_tab_uses_simplified_dds_labels(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get(route('cash-directories.index'))
+            ->assertOk()
+            ->assertSee('Новая запись')
+            ->assertSee('<th>Название</th>', false)
+            ->assertDontSee('Новая статья')
+            ->assertDontSee('Статья ДДС')
+            ->assertDontSee('Тип движения')
+            ->assertDontSee('<th>Тип</th>', false)
+            ->assertDontSee('name="direction"', false);
+    }
+
     public function test_cash_register_can_be_created_updated_and_deleted(): void
     {
         $user = User::factory()->create();

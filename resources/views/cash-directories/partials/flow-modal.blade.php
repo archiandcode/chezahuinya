@@ -15,16 +15,8 @@
                 </div>
                 <div class="modal-body">
                     <div class="form-group">
-                        <label for="{{ $modalId }}_name">Статья ДДС</label>
+                        <label for="{{ $modalId }}_name">Название</label>
                         <input type="text" id="{{ $modalId }}_name" name="name" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="{{ $modalId }}_direction">Тип движения</label>
-                        <select id="{{ $modalId }}_direction" name="direction" class="form-control">
-                            <option value="">Любой тип</option>
-                            <option value="income">Поступление</option>
-                            <option value="expense">Расход</option>
-                        </select>
                     </div>
                     <div class="custom-control custom-switch">
                         <input type="checkbox" id="{{ $modalId }}_is_active" name="is_active" value="1" class="custom-control-input" checked>

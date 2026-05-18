@@ -321,6 +321,7 @@
                             </li>
                         </ul>
                     </li>
+                    {{--
                     <li class="nav-item {{ $constructionSectionIsOpen ? 'menu-open' : '' }}">
                         <a href="#" class="nav-link {{ $constructionSectionIsOpen ? 'active' : '' }}">
                             <i class="nav-icon fas fa-folder"></i>
@@ -346,6 +347,7 @@
                             </li>
                         </ul>
                     </li>
+                    --}}
                     {{--
                     <li class="nav-item">
                         <a href="{{ route('daily-reports.index') }}" class="nav-link {{ request()->routeIs('daily-reports.*') ? 'active' : '' }}">

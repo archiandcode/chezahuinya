@@ -49,6 +49,16 @@ class ConstructionPaymentTest extends TestCase
             ->assertSee('name="construction_section_id" value="'.$selectedSection->id.'"', false);
     }
 
+    public function test_construction_payments_page_does_not_show_directory_button_in_table_header(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get(route('construction-payments.index'))
+            ->assertOk()
+            ->assertDontSee('href="'.route('construction-directories.index').'" class="btn btn-default btn-sm mr-2"', false);
+    }
+
     public function test_construction_payment_filters_apply_inside_selected_section(): void
     {
         $user = User::factory()->create();

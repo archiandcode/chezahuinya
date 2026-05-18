@@ -5,10 +5,6 @@
 
 @php
     $money = fn ($value) => number_format((float) $value, 2, '.', ' ');
-    $directionLabels = [
-        'income' => 'Поступление',
-        'expense' => 'Расход',
-    ];
 @endphp
 
 @section('content')
@@ -65,7 +61,7 @@
             <div class="info-box">
                 <span class="info-box-icon bg-secondary"><i class="fas fa-list-ul"></i></span>
                 <div class="info-box-content">
-                    <span class="info-box-text">Статьи ДДС</span>
+                    <span class="info-box-text">ДДС</span>
                     <span class="info-box-number">{{ $cashFlows->count() }}</span>
                 </div>
             </div>
@@ -232,11 +228,11 @@
                 <div class="tab-pane fade" id="flows" role="tabpanel">
                     <div class="directory-toolbar">
                         <div>
-                            <h3>Статьи ДДС</h3>
-                            <p>Категории движения денежных средств: поступления, расходы или общий тип.</p>
+                            <h3>ДДС</h3>
+                            <p>Не знаю, что это</p>
                         </div>
                         <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#createFlowModal">
-                            <i class="fas fa-plus mr-1"></i> Новая статья
+                            <i class="fas fa-plus mr-1"></i> Новая запись
                         </button>
                     </div>
 
@@ -244,8 +240,7 @@
                         <table class="table table-hover table-bordered mb-0">
                             <thead class="thead-light">
                                 <tr>
-                                    <th>Статья</th>
-                                    <th>Тип</th>
+                                    <th>Название</th>
                                     <th>Статус</th>
                                     <th class="text-right">Действия</th>
                                 </tr>
@@ -254,7 +249,6 @@
                                 @forelse ($cashFlows as $cashFlow)
                                     <tr>
                                         <td class="font-weight-bold">{{ $cashFlow->name }}</td>
-                                        <td>{{ $directionLabels[$cashFlow->direction] ?? 'Любой тип' }}</td>
                                         <td>
                                             <span class="badge {{ $cashFlow->is_active ? 'badge-success' : 'badge-secondary' }}">
                                                 {{ $cashFlow->is_active ? 'Активна' : 'Скрыта' }}
@@ -269,13 +263,12 @@
                                                 data-directory="{{ \Illuminate\Support\Js::encode([
                                                     'action' => route('cash-flow-categories.update', $cashFlow),
                                                     'name' => $cashFlow->name,
-                                                    'direction' => $cashFlow->direction,
                                                     'is_active' => (bool) $cashFlow->is_active,
                                                 ]) }}"
                                             >
                                                 <i class="fas fa-edit"></i>
                                             </button>
-                                            <form method="POST" action="{{ route('cash-flow-categories.destroy', $cashFlow) }}" class="d-inline" onsubmit="return confirm('Удалить статью ДДС?')">
+                                            <form method="POST" action="{{ route('cash-flow-categories.destroy', $cashFlow) }}" class="d-inline" onsubmit="return confirm('Удалить запись?')">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="btn btn-sm btn-outline-danger">
@@ -286,7 +279,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="4" class="text-center text-muted py-4">Статей ДДС пока нет</td>
+                                        <td colspan="3" class="text-center text-muted py-4">Записей пока нет</td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -329,14 +322,14 @@
 
     @include('cash-directories.partials.flow-modal', [
         'modalId' => 'createFlowModal',
-        'title' => 'Новая статья ДДС',
+        'title' => 'Новая запись',
         'action' => route('cash-flow-categories.store'),
         'method' => 'POST',
     ])
 
     @include('cash-directories.partials.flow-modal', [
         'modalId' => 'editFlowModal',
-        'title' => 'Редактировать статью ДДС',
+        'title' => 'Редактировать запись',
         'action' => '#',
         'method' => 'PUT',
     ])
@@ -388,6 +381,16 @@
 
         .directory-currency {
             text-transform: uppercase;
+        }
+
+        .cash-register-amount-input {
+            -moz-appearance: textfield;
+        }
+
+        .cash-register-amount-input::-webkit-outer-spin-button,
+        .cash-register-amount-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
         }
 
         .cash-directory-toast {
@@ -482,7 +485,6 @@
 
                 modal.find('form').attr('action', data.action || '#');
                 modal.find('[name="name"]').val(data.name || '');
-                modal.find('[name="direction"]').val(data.direction || '');
                 modal.find('[name="is_active"]').prop('checked', !! data.is_active);
             });
 

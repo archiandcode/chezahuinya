@@ -28,7 +28,7 @@
                         <div class="col-md-8">
                             <div class="form-group">
                                 <label for="{{ $modalId }}_opening_balance">Начальный остаток</label>
-                                <input type="number" step="0.01" id="{{ $modalId }}_opening_balance" name="opening_balance" value="0.00" class="form-control" required>
+                                <input type="number" step="0.01" id="{{ $modalId }}_opening_balance" name="opening_balance" value="0.00" class="form-control cash-register-amount-input" required>
                             </div>
                         </div>
                     </div>

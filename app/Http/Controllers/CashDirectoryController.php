@@ -80,14 +80,14 @@ class CashDirectoryController extends Controller
     {
         CashFlowCategory::create($this->validatedCashFlowData($request));
 
-        return redirect()->route('cash-directories.index')->with('toast_success', 'Статья ДДС добавлена.');
+        return redirect()->route('cash-directories.index')->with('toast_success', 'Запись ДДС добавлена.');
     }
 
     public function updateCashFlow(Request $request, CashFlowCategory $cashFlowCategory): RedirectResponse
     {
         $cashFlowCategory->update($this->validatedCashFlowData($request, $cashFlowCategory));
 
-        return redirect()->route('cash-directories.index')->with('status', 'Статья ДДС обновлена.');
+        return redirect()->route('cash-directories.index')->with('status', 'Запись ДДС обновлена.');
     }
 
     public function destroyCashFlow(CashFlowCategory $cashFlowCategory): RedirectResponse
@@ -97,10 +97,10 @@ class CashDirectoryController extends Controller
         } catch (QueryException) {
             return redirect()
                 ->route('cash-directories.index')
-                ->withErrors(['cash_flow_category' => 'Нельзя удалить статью ДДС, которая используется в операциях.']);
+                ->withErrors(['cash_flow_category' => 'Нельзя удалить запись ДДС, которая используется в операциях.']);
         }
 
-        return redirect()->route('cash-directories.index')->with('toast_success', 'Статья ДДС удалена.');
+        return redirect()->route('cash-directories.index')->with('toast_success', 'Запись ДДС удалена.');
     }
 
     /**

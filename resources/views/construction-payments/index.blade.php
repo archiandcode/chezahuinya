@@ -237,9 +237,6 @@
         <div class="card-header">
             <h3 class="card-title">Платежи стройки: {{ $totalCount }}</h3>
             <div class="card-tools">
-                <a href="{{ route('construction-directories.index') }}" class="btn btn-default btn-sm mr-2">
-                    <i class="fas fa-book mr-1"></i> Справочники
-                </a>
                 <button type="button" class="btn btn-primary btn-sm mr-2" data-toggle="modal" data-target="#createConstructionPaymentModal">
                     <i class="fas fa-plus mr-1"></i> Новая запись
                 </button>

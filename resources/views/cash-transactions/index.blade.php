@@ -224,14 +224,11 @@
     <div class="card">
         <div class="card-header">
             <h3 class="card-title">Операции кассы: {{ $totalCount }}</h3>
-            <div class="card-tools">
-                <a href="{{ route('cash-directories.index') }}" class="btn btn-default btn-sm mr-2">
-                    <i class="fas fa-book mr-1"></i> Справочники
-                </a>
-                <button type="button" class="btn btn-primary btn-sm mr-2" data-toggle="modal" data-target="#createCashTransactionModal">
+            <div class="card-tools cash-table-tools">
+                <button type="button" class="btn btn-primary btn-sm cash-table-action-button" data-toggle="modal" data-target="#createCashTransactionModal">
                     <i class="fas fa-plus mr-1"></i> Новая запись
                 </button>
-                <form method="GET" action="{{ route('cash-transactions.index') }}" class="d-inline-block">
+                <form method="GET" action="{{ route('cash-transactions.index') }}" class="cash-per-page-form">
                     @foreach (request()->only(['cash_register_id', 'date_from', 'date_to', 'cash_company_id', 'cash_flow_category_id', 'has_supporting_document', 'direction', 'filter_expanded']) as $name => $value)
                         <input type="hidden" name="{{ $name }}" value="{{ $value }}">
                     @endforeach
@@ -369,8 +366,35 @@
             border-top: 1px solid #edf1f5;
         }
 
+        .cash-table-tools {
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+        }
+
+        .cash-per-page-form {
+            display: flex;
+            align-items: center;
+        }
+
+        .cash-table-action-button,
+        .cash-per-page-select {
+            height: calc(2rem + 2px);
+            min-height: calc(2rem + 2px);
+        }
+
+        .cash-table-action-button {
+            display: inline-flex;
+            align-items: center;
+            padding-top: .25rem;
+            padding-bottom: .25rem;
+            vertical-align: top;
+        }
+
         .cash-per-page-select {
             margin-right: .5rem;
+            padding-top: .25rem;
+            padding-bottom: .25rem;
         }
 
         .cash-success-toast {
