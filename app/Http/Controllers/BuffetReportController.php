@@ -2,15 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\PreservesFilterParameters;
 use App\Models\BuffetReportEntry;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class BuffetReportController extends Controller
 {
+    use PreservesFilterParameters;
+
     public function index(Request $request): View
     {
         $filters = $request->validate([
@@ -147,22 +149,5 @@ class BuffetReportController extends Controller
     private function filterKeys(): array
     {
         return ['report_year', 'metric', 'date_from', 'date_to', 'amount_from', 'amount_to', 'per_page', 'page'];
-    }
-
-    private function filterParameters(Request $request): array
-    {
-        $filters = [];
-
-        foreach ($this->filterKeys() as $key) {
-            $prefixedKey = 'filter_'.$key;
-
-            if ($request->has($prefixedKey)) {
-                $filters[$key] = $request->input($prefixedKey);
-            } elseif ($request->has($key)) {
-                $filters[$key] = $request->input($key);
-            }
-        }
-
-        return $filters;
     }
 }

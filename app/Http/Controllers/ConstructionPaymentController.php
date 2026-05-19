@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\PreservesFilterParameters;
 use App\Models\ConstructionPayment;
 use App\Models\ConstructionSection;
 use Illuminate\Database\Eloquent\Builder;
@@ -11,6 +12,8 @@ use Illuminate\View\View;
 
 class ConstructionPaymentController extends Controller
 {
+    use PreservesFilterParameters;
+
     public function index(Request $request): View
     {
         $filters = $request->validate([
@@ -96,8 +99,8 @@ class ConstructionPaymentController extends Controller
     }
 
     /**
-     * @param Builder<ConstructionPayment> $query
-     * @param array<string, mixed> $filters
+     * @param  Builder<ConstructionPayment>  $query
+     * @param  array<string, mixed>  $filters
      */
     private function applyFilters(Builder $query, array $filters): void
     {
@@ -155,21 +158,13 @@ class ConstructionPaymentController extends Controller
         ];
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    private function filterParameters(Request $request): array
+    private function includesUnprefixedFilterParameters(): bool
     {
-        $filters = [];
+        return false;
+    }
 
-        foreach ($this->filterKeys() as $key) {
-            $prefixedKey = 'filter_'.$key;
-
-            if ($request->has($prefixedKey)) {
-                $filters[$key] = $request->input($prefixedKey);
-            }
-        }
-
-        return array_filter($filters, fn (mixed $value): bool => filled($value));
+    private function dropsBlankFilterParameters(): bool
+    {
+        return true;
     }
 }

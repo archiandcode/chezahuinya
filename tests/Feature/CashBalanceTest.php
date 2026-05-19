@@ -67,6 +67,60 @@ class CashBalanceTest extends TestCase
             ->assertDontSee('2 500.00');
     }
 
+    public function test_cash_balance_rows_are_ordered_by_date_sort_order_and_id(): void
+    {
+        $user = User::factory()->create();
+        CashBalance::query()->delete();
+
+        CashBalance::create([
+            'balance_date' => '2026-05-18',
+            'sort_order' => 2,
+            'company' => 'Третья компания',
+            'balance_amount' => 300,
+        ]);
+        CashBalance::create([
+            'balance_date' => '2026-05-19',
+            'sort_order' => 2,
+            'company' => 'Вторая компания',
+            'balance_amount' => 200,
+        ]);
+        CashBalance::create([
+            'balance_date' => '2026-05-19',
+            'sort_order' => 1,
+            'company' => 'Первая компания',
+            'balance_amount' => 100,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('cash-balances.index'))
+            ->assertOk()
+            ->assertSeeInOrder([
+                'Первая компания',
+                'Вторая компания',
+                'Третья компания',
+            ]);
+    }
+
+    public function test_cash_balance_index_validation_rejects_invalid_filter_combinations(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get(route('cash-balances.index', [
+                'date_from' => '2026-05-20',
+                'date_to' => '2026-05-18',
+                'amount_from' => '-1',
+                'amount_to' => '-10',
+                'per_page' => '500',
+            ]))
+            ->assertSessionHasErrors([
+                'date_to',
+                'amount_from',
+                'amount_to',
+                'per_page',
+            ]);
+    }
+
     public function test_cash_balance_can_be_created_with_default_zero_amounts(): void
     {
         $user = User::factory()->create();

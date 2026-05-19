@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\PreservesFilterParameters;
 use App\Models\DebtCreditEntry;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -11,6 +12,8 @@ use Illuminate\View\View;
 
 class DebtCreditReportController extends Controller
 {
+    use PreservesFilterParameters;
+
     public function index(Request $request): View
     {
         $filters = $request->validate([
@@ -140,22 +143,5 @@ class DebtCreditReportController extends Controller
     private function filterKeys(): array
     {
         return ['date_from', 'date_to', 'section', 'group_name', 'company', 'amount_from', 'amount_to', 'per_page', 'page'];
-    }
-
-    private function filterParameters(Request $request): array
-    {
-        $filters = [];
-
-        foreach ($this->filterKeys() as $key) {
-            $prefixedKey = 'filter_'.$key;
-
-            if ($request->has($prefixedKey)) {
-                $filters[$key] = $request->input($prefixedKey);
-            } elseif ($request->has($key)) {
-                $filters[$key] = $request->input($key);
-            }
-        }
-
-        return $filters;
     }
 }

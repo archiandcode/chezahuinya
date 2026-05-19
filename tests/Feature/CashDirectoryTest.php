@@ -47,6 +47,42 @@ class CashDirectoryTest extends TestCase
             ->assertSee($cashFlow->name);
     }
 
+    public function test_cash_directories_page_orders_active_entries_before_inactive_entries(): void
+    {
+        $user = User::factory()->create();
+        $inactiveRegister = CashRegister::factory()->create([
+            'name' => 'Неактивная касса '.str()->random(8),
+            'is_active' => false,
+        ]);
+        $activeRegister = CashRegister::factory()->create([
+            'name' => 'Активная касса '.str()->random(8),
+            'is_active' => true,
+        ]);
+        $inactiveCompany = CashCompany::factory()->create([
+            'name' => 'Неактивная компания '.str()->random(8),
+            'is_active' => false,
+        ]);
+        $activeCompany = CashCompany::factory()->create([
+            'name' => 'Активная компания '.str()->random(8),
+            'is_active' => true,
+        ]);
+        $inactiveCashFlow = CashFlowCategory::factory()->create([
+            'name' => 'Неактивная ДДС '.str()->random(8),
+            'is_active' => false,
+        ]);
+        $activeCashFlow = CashFlowCategory::factory()->create([
+            'name' => 'Активная ДДС '.str()->random(8),
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('cash-directories.index'))
+            ->assertOk()
+            ->assertSeeInOrder([$activeRegister->name, $inactiveRegister->name])
+            ->assertSeeInOrder([$activeCompany->name, $inactiveCompany->name])
+            ->assertSeeInOrder([$activeCashFlow->name, $inactiveCashFlow->name]);
+    }
+
     public function test_cash_flow_directory_tab_uses_simplified_dds_labels(): void
     {
         $user = User::factory()->create();
@@ -131,6 +167,23 @@ class CashDirectoryTest extends TestCase
                 'opening_balance' => '100',
             ])
             ->assertSessionHasErrors(['name', 'currency']);
+    }
+
+    public function test_cash_register_validation_rejects_invalid_opening_balance_fields(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->post(route('cash-registers.store'), [
+                'name' => 'Касса с ошибкой '.str()->random(8),
+                'currency' => 'KZT',
+                'opening_balance' => 'not-a-number',
+                'opening_balance_date' => 'not-a-date',
+            ])
+            ->assertSessionHasErrors([
+                'opening_balance',
+                'opening_balance_date',
+            ]);
     }
 
     public function test_cash_company_can_be_created_updated_and_deleted(): void

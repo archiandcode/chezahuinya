@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\PreservesFilterParameters;
 use App\Models\CashCompany;
 use App\Models\CashFlowCategory;
 use App\Models\CashRegister;
@@ -14,6 +15,8 @@ use Illuminate\View\View;
 
 class CashTransactionController extends Controller
 {
+    use PreservesFilterParameters;
+
     public function index(Request $request): View
     {
         $filters = $request->validate([
@@ -96,8 +99,8 @@ class CashTransactionController extends Controller
     }
 
     /**
-     * @param Builder<CashTransaction> $query
-     * @param array<string, mixed> $filters
+     * @param  Builder<CashTransaction>  $query
+     * @param  array<string, mixed>  $filters
      */
     private function applyFilters(Builder $query, array $filters): void
     {
@@ -152,6 +155,12 @@ class CashTransactionController extends Controller
             ]);
         }
 
+        if ((float) $data['income_amount'] > 0 && (float) $data['expense_amount'] > 0) {
+            throw ValidationException::withMessages([
+                'expense_amount' => 'Операция не может быть одновременно поступлением и расходом.',
+            ]);
+        }
+
         return $data;
     }
 
@@ -186,7 +195,7 @@ class CashTransactionController extends Controller
     }
 
     /**
-     * @param array<string, mixed> $filters
+     * @param  array<string, mixed>  $filters
      */
     private function openingBalance(array $filters): float
     {
@@ -200,7 +209,7 @@ class CashTransactionController extends Controller
     }
 
     /**
-     * @param array<string, mixed> $filters
+     * @param  array<string, mixed>  $filters
      */
     private function currentBalance(array $filters): float
     {
@@ -232,21 +241,13 @@ class CashTransactionController extends Controller
         ];
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    private function filterParameters(Request $request): array
+    private function includesUnprefixedFilterParameters(): bool
     {
-        $filters = [];
+        return false;
+    }
 
-        foreach ($this->filterKeys() as $key) {
-            $prefixedKey = 'filter_'.$key;
-
-            if ($request->has($prefixedKey)) {
-                $filters[$key] = $request->input($prefixedKey);
-            }
-        }
-
-        return array_filter($filters, fn (mixed $value): bool => filled($value));
+    private function dropsBlankFilterParameters(): bool
+    {
+        return true;
     }
 }

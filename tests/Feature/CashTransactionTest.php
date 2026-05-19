@@ -210,6 +210,53 @@ class CashTransactionTest extends TestCase
             ->assertSessionHasErrors(['income_amount']);
     }
 
+    public function test_cash_transaction_create_validation_rejects_unknown_directory_links(): void
+    {
+        $user = User::factory()->create();
+        $register = CashRegister::factory()->create(['name' => 'Касса неверных ссылок '.str()->random(8)]);
+
+        $this->actingAs($user)
+            ->post(route('cash-transactions.store'), [
+                'cash_register_id' => $register->id,
+                'transaction_date' => '2026-05-18',
+                'income_amount' => '100',
+                'cash_company_id' => 999999,
+                'cash_flow_category_id' => 999999,
+            ])
+            ->assertSessionHasErrors([
+                'cash_company_id',
+                'cash_flow_category_id',
+            ]);
+
+        $this->assertDatabaseMissing('cash_transactions', [
+            'cash_register_id' => $register->id,
+            'transaction_date' => '2026-05-18',
+            'income_amount' => '100.00',
+        ]);
+    }
+
+    public function test_cash_transaction_create_validation_rejects_income_and_expense_together(): void
+    {
+        $user = User::factory()->create();
+        $register = CashRegister::factory()->create(['name' => 'Касса двойной суммы '.str()->random(8)]);
+
+        $this->actingAs($user)
+            ->post(route('cash-transactions.store'), [
+                'cash_register_id' => $register->id,
+                'transaction_date' => '2026-05-18',
+                'income_amount' => '100',
+                'expense_amount' => '50',
+            ])
+            ->assertSessionHasErrors(['expense_amount']);
+
+        $this->assertDatabaseMissing('cash_transactions', [
+            'cash_register_id' => $register->id,
+            'transaction_date' => '2026-05-18',
+            'income_amount' => '100.00',
+            'expense_amount' => '50.00',
+        ]);
+    }
+
     public function test_cash_transaction_can_be_updated_and_keeps_filter_context(): void
     {
         $user = User::factory()->create();
@@ -312,6 +359,31 @@ class CashTransactionTest extends TestCase
             ->assertSessionHasErrors(['income_amount']);
     }
 
+    public function test_cash_transaction_update_validation_rejects_income_and_expense_together(): void
+    {
+        $user = User::factory()->create();
+        $register = CashRegister::factory()->create(['name' => 'Касса обновления двойной суммы '.str()->random(8)]);
+        $transaction = CashTransaction::factory()->forCashRegister($register)->income(100)->create([
+            'transaction_date' => '2026-05-18',
+        ]);
+
+        $this->actingAs($user)
+            ->put(route('cash-transactions.update', $transaction), [
+                'cash_register_id' => $register->id,
+                'transaction_date' => '2026-05-19',
+                'income_amount' => '100',
+                'expense_amount' => '50',
+            ])
+            ->assertSessionHasErrors(['expense_amount']);
+
+        $this->assertDatabaseHas('cash_transactions', [
+            'id' => $transaction->id,
+            'transaction_date' => '2026-05-18',
+            'income_amount' => '100.00',
+            'expense_amount' => '0.00',
+        ]);
+    }
+
     public function test_cash_transaction_index_validation_rejects_invalid_filter_combinations(): void
     {
         $user = User::factory()->create();
@@ -330,6 +402,65 @@ class CashTransactionTest extends TestCase
                 'has_supporting_document',
                 'per_page',
             ]);
+    }
+
+    public function test_cash_transaction_filters_can_show_expenses_without_supporting_documents(): void
+    {
+        $user = User::factory()->create();
+        $register = CashRegister::factory()->create(['name' => 'Касса фильтра СЗ '.str()->random(8)]);
+
+        CashTransaction::factory()->forCashRegister($register)->expense(300)->create([
+            'transaction_date' => '2026-05-18',
+            'has_supporting_document' => false,
+        ]);
+        CashTransaction::factory()->forCashRegister($register)->expense(400)->create([
+            'transaction_date' => '2026-05-18',
+            'has_supporting_document' => true,
+        ]);
+        CashTransaction::factory()->forCashRegister($register)->income(500)->create([
+            'transaction_date' => '2026-05-18',
+            'has_supporting_document' => false,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('cash-transactions.index', [
+                'cash_register_id' => $register->id,
+                'direction' => 'expense',
+                'has_supporting_document' => 'no',
+            ]))
+            ->assertOk()
+            ->assertSee('300.00')
+            ->assertDontSee('400.00')
+            ->assertDontSee('500.00');
+    }
+
+    public function test_cash_transaction_reset_link_preserves_selected_register_and_per_page_only(): void
+    {
+        $user = User::factory()->create();
+        $register = CashRegister::factory()->create(['name' => 'Касса сброса '.str()->random(8)]);
+        $company = CashCompany::factory()->create(['name' => 'Компания сброса '.str()->random(8)]);
+        CashTransaction::factory()->forCashRegister($register)->forCashCompany($company)->income(100)->create([
+            'transaction_date' => '2026-05-18',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('cash-transactions.index', [
+                'cash_register_id' => $register->id,
+                'date_from' => '2026-05-18',
+                'cash_company_id' => $company->id,
+                'per_page' => '25',
+            ]))
+            ->assertOk()
+            ->assertSee('href="'.e(route('cash-transactions.index', [
+                'cash_register_id' => $register->id,
+                'per_page' => '25',
+            ])).'"', false)
+            ->assertDontSee('href="'.e(route('cash-transactions.index', [
+                'cash_register_id' => $register->id,
+                'date_from' => '2026-05-18',
+                'cash_company_id' => $company->id,
+                'per_page' => '25',
+            ])).'"', false);
     }
 
     public function test_cash_transaction_can_be_deleted_and_keeps_query_context(): void

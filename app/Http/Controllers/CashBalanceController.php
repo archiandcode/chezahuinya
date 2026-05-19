@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\PreservesFilterParameters;
 use App\Models\CashBalance;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -10,6 +11,8 @@ use Illuminate\View\View;
 
 class CashBalanceController extends Controller
 {
+    use PreservesFilterParameters;
+
     public function index(Request $request): View
     {
         $filters = $request->validate([
@@ -81,8 +84,8 @@ class CashBalanceController extends Controller
     }
 
     /**
-     * @param Builder<CashBalance> $query
-     * @param array<string, mixed> $filters
+     * @param  Builder<CashBalance>  $query
+     * @param  array<string, mixed>  $filters
      */
     private function applyFilters(Builder $query, array $filters): void
     {
@@ -130,25 +133,5 @@ class CashBalanceController extends Controller
             'per_page',
             'page',
         ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function filterParameters(Request $request): array
-    {
-        $filters = [];
-
-        foreach ($this->filterKeys() as $key) {
-            $prefixedKey = 'filter_'.$key;
-
-            if ($request->has($prefixedKey)) {
-                $filters[$key] = $request->input($prefixedKey);
-            } elseif ($request->has($key)) {
-                $filters[$key] = $request->input($key);
-            }
-        }
-
-        return $filters;
     }
 }

@@ -48,6 +48,12 @@
             "@php artisan config:clear --ansi @no_additional_args",
             "@php artisan test"
         ],
+        "quality": [
+            "@php artisan code:quality --fail-on=none"
+        ],
+        "quality:strict": [
+            "@php artisan code:quality --fail-on=warning"
+        ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"
