@@ -1,22 +1,52 @@
 services:
-    postgres:
-        image: postgres:16-alpine
-        container_name: www_postgres
-        restart: unless-stopped
-        ports:
-            - "5433:5432"
-        environment:
-            POSTGRES_DB: laravel
-            POSTGRES_USER: laravel
-            POSTGRES_PASSWORD: password
-        volumes:
-            - postgres_data:/var/lib/postgresql/data
-            - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
-        healthcheck:
-            test: ["CMD-SHELL", "pg_isready -U laravel -d laravel"]
-            interval: 10s
-            timeout: 5s
-            retries: 5
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: finance-laravel:production
+    container_name: finance_app
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      LOG_CHANNEL: stderr
+      SESSION_DRIVER: database
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+    ports:
+      - "7777:80"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1/up || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: finance_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-laravel}
+      POSTGRES_USER: ${DB_USERNAME:-laravel}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+    ports:
+      - "${DB_FORWARD_PORT:-5433}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U laravel -d laravel"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
-    postgres_data:
+  postgres_data:

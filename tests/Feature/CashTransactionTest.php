@@ -103,6 +103,48 @@ class CashTransactionTest extends TestCase
             ->assertSee('СЗ:');
     }
 
+    public function test_cash_transaction_index_summarizes_and_calculates_balances_per_register(): void
+    {
+        $user = User::factory()->create();
+        $register = CashRegister::factory()->create([
+            'name' => 'Касса с остатком '.str()->random(8),
+            'opening_balance' => 100,
+        ]);
+        $otherRegister = CashRegister::factory()->create([
+            'name' => 'Чужая касса '.str()->random(8),
+            'opening_balance' => 1000,
+        ]);
+
+        CashTransaction::factory()->forCashRegister($register)->income(50)->create([
+            'transaction_date' => '2026-05-18',
+        ]);
+        CashTransaction::factory()->forCashRegister($register)->expense(20)->create([
+            'transaction_date' => '2026-05-19',
+        ]);
+        CashTransaction::factory()->forCashRegister($otherRegister)->expense(100)->create([
+            'transaction_date' => '2026-05-18',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('cash-transactions.index', ['cash_register_id' => $register->id]))
+            ->assertOk()
+            ->assertSeeInOrder([
+                '100.00',
+                '50.00',
+                '20.00',
+                '130.00',
+            ])
+            ->assertSeeInOrder([
+                '18.05.2026',
+                '50.00',
+                '150.00',
+                '19.05.2026',
+                '20.00',
+                '130.00',
+            ])
+            ->assertDontSee('900.00');
+    }
+
     public function test_cash_transaction_can_be_created_and_redirects_back_to_current_filters(): void
     {
         $user = User::factory()->create();
@@ -212,6 +254,46 @@ class CashTransactionTest extends TestCase
         ]);
     }
 
+    public function test_cash_transaction_update_can_clear_optional_directory_links_and_document_flag(): void
+    {
+        $user = User::factory()->create();
+        $register = CashRegister::factory()->create(['name' => 'Касса очистки '.str()->random(8)]);
+        $company = CashCompany::factory()->create(['name' => 'Компания очистки '.str()->random(8)]);
+        $cashFlow = CashFlowCategory::factory()->expense()->create(['name' => 'ДДС очистки '.str()->random(8)]);
+        $transaction = CashTransaction::factory()
+            ->forCashRegister($register)
+            ->forCashCompany($company)
+            ->forCashFlowCategory($cashFlow)
+            ->expense(100)
+            ->create([
+                'transaction_date' => '2026-05-18',
+                'has_supporting_document' => true,
+            ]);
+
+        $this->actingAs($user)
+            ->put(route('cash-transactions.update', $transaction), [
+                'cash_register_id' => $register->id,
+                'transaction_date' => '2026-05-20',
+                'income_amount' => '250',
+                'expense_amount' => null,
+                'cash_company_id' => null,
+                'cash_flow_category_id' => null,
+            ])
+            ->assertRedirect(route('cash-transactions.index'));
+
+        $this->assertDatabaseHas('cash_transactions', [
+            'id' => $transaction->id,
+            'transaction_date' => '2026-05-20',
+            'income_amount' => '250.00',
+            'expense_amount' => '0.00',
+            'cash_company_id' => null,
+            'company' => null,
+            'cash_flow_category_id' => null,
+            'cash_flow' => null,
+            'has_supporting_document' => null,
+        ]);
+    }
+
     public function test_cash_transaction_update_validation_rejects_negative_amounts(): void
     {
         $user = User::factory()->create();
@@ -228,6 +310,26 @@ class CashTransactionTest extends TestCase
                 'expense_amount' => '0',
             ])
             ->assertSessionHasErrors(['income_amount']);
+    }
+
+    public function test_cash_transaction_index_validation_rejects_invalid_filter_combinations(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get(route('cash-transactions.index', [
+                'date_from' => '2026-05-20',
+                'date_to' => '2026-05-18',
+                'direction' => 'transfer',
+                'has_supporting_document' => 'maybe',
+                'per_page' => '500',
+            ]))
+            ->assertSessionHasErrors([
+                'date_to',
+                'direction',
+                'has_supporting_document',
+                'per_page',
+            ]);
     }
 
     public function test_cash_transaction_can_be_deleted_and_keeps_query_context(): void
